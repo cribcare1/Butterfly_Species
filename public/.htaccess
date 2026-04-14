@@ -1,0 +1,13 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  
+  # Handle API proxying
+  RewriteCond %{REQUEST_URI} ^/api/wlb/
+  RewriteRule ^api/wlb/(.*)$ https://wlbapi.toolforge.org/api/wlb/$1 [P,L]
+  
+  # Handle React Router - redirect all non-file requests to index.html
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^(.*)$ index.html [QSA,L]
+</IfModule>
