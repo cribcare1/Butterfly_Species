@@ -54,8 +54,8 @@ async function routeWLBAPI(endpoint, params = {}) {
   const fullUrl = urlBuilder.buildUrl(endpoint.path, params);
 
  
-//  const end_url = `https://wlbapi.toolforge.org${fullUrl}`;
- const end_url = `${fullUrl}`;
+ const end_url = `https://wlbapi.toolforge.org${fullUrl}`;
+//  const end_url = `${fullUrl}`;
   console.log(`[routeWLBAPI] Fetching:`, end_url);
   const res = await fetch(end_url, { headers: { Accept: 'application/json' } });
 

@@ -2,7 +2,6 @@
   "name": "butterfly-conservation",
   "version": "1.0.0",
   "private": true,
-  "proxy": "https://wlbapi.toolforge.org",
   "dependencies": {
     "@react-google-maps/api": "^2.20.8",
     "axios": "^1.6.0",
