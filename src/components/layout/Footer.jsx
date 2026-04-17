@@ -32,7 +32,7 @@ export default function Footer() {
         </div>
 
         {/* Resources */}
-        <div>
+        {/* <div>
           <div style={{ fontSize: '.72rem', color: 'var(--text3)', letterSpacing: '.1em', marginBottom: '.75rem' }}>RESOURCES</div>
           {['Species Checklist', 'Research Papers', 'Field Guides', 'Photo Library', 'Open Data', 'Submit Sighting'].map(r => (
             <div key={r}
@@ -41,7 +41,7 @@ export default function Footer() {
               onMouseLeave={e => e.currentTarget.style.color = 'var(--text3)'}
             >{r}</div>
           ))}
-        </div>
+        </div> */}
 
         {/* Social */}
         <div>

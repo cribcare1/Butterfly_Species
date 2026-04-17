@@ -347,7 +347,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Taxon category cards ──────────────────────────────────────────── */}
-      <section style={{ padding: '0 1.5rem 5rem', maxWidth: 1200, margin: '0 auto' }}>
+      {/* <section style={{ padding: '0 1.5rem 5rem', maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
           <div className="sec-eye">6 Butterfly Families</div>
           <h2 className="sec-h">Taxon <em>Categories</em></h2>
@@ -377,7 +377,7 @@ export default function HomePage() {
             </div>
           ))}
         </div>
-      </section>
+      </section> */}
 
     </div>
   );

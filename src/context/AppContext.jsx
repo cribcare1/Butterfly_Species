@@ -35,7 +35,7 @@ export async function fetchSpeciesImages(scientificName) {
   try {
     console.log(`[fetchSpeciesImages] Fetching for:`, param);
     // Use relative URL just like fetchFeaturedImages does
-    const response = await fetch(`/api/wlb/images-by-species?species=${encodeURIComponent(param)}`);
+    const response = await fetch(`https://wlbapi.toolforge.org/api/wlb/images-by-species?species=${encodeURIComponent(param)}`);
     
     if (!response.ok) {
       console.warn(`[fetchSpeciesImages] HTTP ${response.status}`);
@@ -55,7 +55,7 @@ export async function fetchSpeciesImages(scientificName) {
 }
 
 export async function fetchFeaturedImages() {
-  const response = await fetch('/api/wlb/images-by-type?type=feature');
+  const response = await fetch('https://wlbapi.toolforge.org/api/wlb/images-by-type?type=feature');
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const data = await response.json();
   const files = data?.files || [];
