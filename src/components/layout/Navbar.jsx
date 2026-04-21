@@ -25,7 +25,7 @@ export default function Navbar() {
   return (
     <nav style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 500,
-      background: sy > 30 ? 'rgba(4,8,10,.94)' : 'transparent',
+      background: sy > 30 ? 'var(--nav-bg)' : 'transparent',
       backdropFilter: sy > 30 ? 'blur(18px)' : 'none',
       borderBottom: `1px solid ${sy > 30 ? 'var(--border)' : 'transparent'}`,
       padding: '.75rem 1.5rem',
@@ -80,6 +80,23 @@ export default function Navbar() {
       <div className="hide-m" style={{ display: 'flex', alignItems: 'center' }}>
         <GlobalSearch />
       </div>
+
+      {/* Theme toggle */}
+      <button
+        onClick={() => dispatch({ type: 'TOGGLE_THEME' })}
+        title={state.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        style={{
+          background: 'none', border: '1px solid var(--border)',
+          color: 'var(--text2)', width: 34, height: 34,
+          borderRadius: 8, cursor: 'pointer', fontSize: '1rem',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'all .2s', flexShrink: 0,
+        }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--green)'; e.currentTarget.style.color = 'var(--green)'; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text2)'; }}
+      >
+        {state.theme === 'dark' ? '☀' : '☽'}
+      </button>
 
       {/* Sidebar toggle */}
       {/* <button

@@ -25,11 +25,31 @@ const CSS = `
   --green:#52c97b;--green2:#34d399;--greenGlow:rgba(82,201,123,.13);
   --text:#e8f0e9;--text2:#8aaa92;--text3:#4a6a52;
   --ff:'Cormorant Garamond',Georgia,serif;--fb:'DM Sans',sans-serif;
+  --nav-bg:rgba(4,8,10,.94);
+  --modal-bg:linear-gradient(160deg,#0a1a0e,#070f09);
+  --sidebar-bg:linear-gradient(180deg,#0a1410 0%,#040810 100%);
+  --sidebar-header-bg:linear-gradient(180deg,#0a1410 0%,#040810 100%);
+  --inp-bg:rgba(255,255,255,.04);--sel-opt-bg:#081012;
+  --card-hover-shadow:0 18px 38px rgba(0,0,0,.28);
+  --modal-overlay:rgba(0,0,0,.85);--scrollbar-thumb:#1a3a22;
+}
+[data-theme="light"]{
+  --bg:#f4f8f4;--bg2:#eaf1eb;--bg3:rgba(0,0,0,.04);
+  --border:rgba(30,90,50,.12);--border2:rgba(30,90,50,.28);
+  --green:#1c7a3e;--green2:#15803d;--greenGlow:rgba(28,122,62,.1);
+  --text:#0d1a10;--text2:#3a6345;--text3:#7a9e82;
+  --nav-bg:rgba(244,248,244,.95);
+  --modal-bg:linear-gradient(160deg,#eef5ef,#e8f0ea);
+  --sidebar-bg:linear-gradient(180deg,#eef5ef 0%,#e8f0ea 100%);
+  --sidebar-header-bg:linear-gradient(180deg,#eef5ef 0%,#e8f0ea 100%);
+  --inp-bg:rgba(0,0,0,.04);--sel-opt-bg:#eaf1eb;
+  --card-hover-shadow:0 18px 38px rgba(0,80,30,.1);
+  --modal-overlay:rgba(200,230,210,.75);--scrollbar-thumb:#6abf82;
 }
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:var(--fb);overflow-x:hidden;font-size:15px}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}
-::-webkit-scrollbar-thumb{background:#1a3a22;border-radius:3px}
+::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:3px}
 @keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes flap{0%,100%{transform:scaleX(1) rotate(-1deg)}50%{transform:scaleX(.58) rotate(2deg)}}
@@ -55,14 +75,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--fb);overflow-x:hid
 .t-amber{background:rgba(251,191,36,.12);color:#fbbf24;border:1px solid rgba(251,191,36,.22)}
 .t-blue{background:rgba(96,165,250,.12);color:#60a5fa;border:1px solid rgba(96,165,250,.22)}
 .t-purple{background:rgba(167,139,250,.12);color:#a78bfa;border:1px solid rgba(167,139,250,.22)}
-.inp{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text);padding:.52rem .95rem;border-radius:10px;font-family:var(--fb);font-size:.88rem;outline:none;transition:border-color .3s;width:100%}
+.inp{background:var(--inp-bg);border:1px solid var(--border);color:var(--text);padding:.52rem .95rem;border-radius:10px;font-family:var(--fb);font-size:.88rem;outline:none;transition:border-color .3s;width:100%}
 .inp:focus{border-color:var(--green);background:var(--greenGlow)}
 .inp::placeholder{color:var(--text3)}
-.sel{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text);padding:.48rem .85rem;border-radius:10px;font-family:var(--fb);font-size:.83rem;outline:none;cursor:pointer;transition:border-color .3s}
+.sel{background:var(--inp-bg);border:1px solid var(--border);color:var(--text);padding:.48rem .85rem;border-radius:10px;font-family:var(--fb);font-size:.83rem;outline:none;cursor:pointer;transition:border-color .3s}
 .sel:focus{border-color:var(--green)}
-.sel option{background:#081012}
+.sel option{background:var(--sel-opt-bg)}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(14px);animation:fadeIn .2s ease;overflow-y:auto}
-.modal{background:linear-gradient(160deg,#0a1a0e,#070f09);border:1px solid var(--border2);border-radius:22px;padding:2.5rem;max-width:600px;width:100%;position:relative;animation:fadeUp .3s ease;max-height:92vh;overflow-y:auto}
+.modal{background:var(--modal-bg);border:1px solid var(--border2);border-radius:22px;padding:2.5rem;max-width:600px;width:100%;position:relative;animation:fadeUp .3s ease;max-height:92vh;overflow-y:auto}
 .nav-btn{background:none;border:none;color:var(--text2);font-family:var(--fb);font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;padding:.4rem .95rem;border-radius:8px;transition:all .2s;position:relative;white-space:nowrap}
 .nav-btn:hover{color:var(--green);background:var(--greenGlow)}
 .nav-btn.active{color:var(--green);background:rgba(82,201,123,.1)}

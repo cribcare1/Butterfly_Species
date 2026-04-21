@@ -10,6 +10,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
   </head>
   <body>
+    <script>
+      try {
+        var t = localStorage.getItem('bf-theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+      } catch(e) {}
+    </script>
     <div id="root"></div>
   </body>
 </html>

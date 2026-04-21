@@ -279,14 +279,7 @@ export default function HomePage() {
         </section>
       ) : null}
 
-      {/* ── Marquee ───────────────────────────────────────────────────────── */}
-      <div style={{ overflow: 'hidden', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'var(--bg3)', padding: '.85rem 0' }}>
-        <div style={{ display: 'flex', animation: 'marquee 30s linear infinite', gap: '2.5rem', width: 'max-content' }}>
-          {[...Array(3)].flatMap(() => ['Monarch Swallowtail', 'Blue Morpho', 'Apollo', 'Glasswing', 'Crimson Rose', 'Malabar Banded Peacock', 'Painted Lady', 'Blue Tiger', 'Common Jezebel', 'Yellow Orange Tip']).map((t, i) => (
-            <span key={i} style={{ color: 'var(--text3)', fontSize: '.8rem', letterSpacing: '.12em', whiteSpace: 'nowrap', fontFamily: 'var(--fb)' }}>🦋 {t}</span>
-          ))}
-        </div>
-      </div>
+     
 
       {/* ── Stats ─────────────────────────────────────────────────────────── */}
       {stats && (

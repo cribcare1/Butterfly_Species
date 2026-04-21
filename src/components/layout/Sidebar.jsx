@@ -1,9 +1,86 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 
+function isFileLeaf(node) {
+  return node.type === 'files' || (Array.isArray(node.files) && node.files.length > 0);
+}
+
+function TaxonNode({ node, depth, cat }) {
+  const { state, dispatch } = useApp();
+  const [expanded, setExpanded] = useState(depth === 0);
+
+  const displayName = node.category.replace(/_/g, ' ');
+
+  // A node is a leaf if it has no children, is a file node,
+  // OR all its children are file nodes (= species level, don't drill into subspecies)
+  const allChildrenFiles = Array.isArray(node.children) &&
+    node.children.length > 0 &&
+    node.children.every(isFileLeaf);
+  const isLeaf = isFileLeaf(node) ||
+    !Array.isArray(node.children) ||
+    node.children.length === 0 ||
+    allChildrenFiles;
+
+  const isSelected = state.selectedSubcat === node.category ||
+    state.selectedSpeciesFilter?.path?.includes(node.category);
+
+  const handleClick = () => {
+    dispatch({ type: 'SEL_CAT', v: cat });
+    dispatch({ type: 'SET_PAGE', p: 'species' });
+
+    if (isLeaf) {
+      // Species-level leaf: just set the species filter (no subcat change)
+      const species = cat.species.find(s => s.path && s.path.includes(node.category));
+      if (species) {
+        dispatch({ type: 'SEL_SPECIES_FILTER', v: species });
+      }
+    } else {
+      setExpanded(e => !e);
+      dispatch({ type: 'SEL_SUBCAT', v: node.category });
+      dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+    }
+  };
+
+  return (
+    <div>
+      <button
+        onClick={handleClick}
+        className="sidebar-sublink"
+        style={{
+          paddingLeft: `${0.6 + depth * 0.9}rem`,
+          color: isSelected ? '#52c97b' : 'var(--text3)',
+          background: isSelected ? 'rgba(82,201,123,.08)' : 'transparent',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '.35rem',
+          width: '100%',
+          textAlign: 'left',
+        }}
+      >
+        <span style={{ flexShrink: 0, fontSize: '.65rem', color: isSelected ? '#52c97b' : 'var(--border)' }}>
+          {isLeaf ? '•' : expanded ? '▾' : '▸'}
+        </span>
+        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {displayName}
+        </span>
+        {node.count > 0 && (
+          <span style={{ fontSize: '.6rem', color: 'var(--text3)', flexShrink: 0 }}>{node.count}</span>
+        )}
+      </button>
+
+      {expanded && !isLeaf && (
+        <div style={{ borderLeft: '1px solid var(--border)', marginLeft: `${0.9 + depth * 0.9}rem` }}>
+          {node.children.map(child => (
+            <TaxonNode key={child.category} node={child} depth={depth + 1} cat={cat} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Sidebar() {
   const { state, dispatch } = useApp();
-  const [expandedSubcat, setExpandedSubcat] = useState(null);
 
   return (
     <aside className={`sidebar ${state.sidebarOpen ? 'open' : ''}`}>
@@ -19,13 +96,12 @@ export default function Sidebar() {
       </div>
 
       <nav className="sidebar-nav">
-        {/* All Families */}
         <button
           onClick={() => {
             dispatch({ type: 'SEL_CAT', v: null });
             dispatch({ type: 'SEL_SUBCAT', v: 'all' });
+            dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
             dispatch({ type: 'SET_PAGE', p: 'species' });
-            setExpandedSubcat(null);
           }}
           className="sidebar-link"
           style={{
@@ -38,117 +114,63 @@ export default function Sidebar() {
           All Families
         </button>
 
-        {/* Families */}
         {state.categories.map(cat => (
           <div key={cat.id} className="sidebar-family">
             <button
               onClick={() => {
                 dispatch({ type: 'SEL_CAT', v: cat });
                 dispatch({ type: 'SEL_SUBCAT', v: 'all' });
+                dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
                 dispatch({ type: 'SET_PAGE', p: 'species' });
-                setExpandedSubcat(null);
               }}
               className="sidebar-link"
               style={{
                 background: state.selectedCategory?.id === cat.id && state.selectedSubcat === 'all' ? 'rgba(82,201,123,.12)' : 'transparent',
-                borderLeft: state.selectedCategory?.id === cat.id && state.selectedSubcat === 'all' ? '3px solid #52c97b' : '3px solid transparent',
+                borderLeft: state.selectedCategory?.id === cat.id ? '3px solid #52c97b' : '3px solid transparent',
                 color: state.selectedCategory?.id === cat.id ? '#52c97b' : 'var(--text2)',
                 fontWeight: state.selectedCategory?.id === cat.id ? 600 : 400,
               }}
             >
               <span>{cat.name}</span>
               <span style={{ fontSize: '.7rem', color: 'var(--text3)', marginLeft: 'auto' }}>
-                {cat.species?.length || 0}
+                {cat.count || 0}
               </span>
             </button>
 
-            {/* Subcategories */}
-            {state.selectedCategory?.id === cat.id && cat.species?.length > 0 && (
+            {state.selectedCategory?.id === cat.id && cat.taxonomyLoading && (
+              <div style={{ padding: '0.5rem 1rem', color: 'var(--text3)', fontSize: '.75rem' }}>
+                Loading...
+              </div>
+            )}
+
+            {state.selectedCategory?.id === cat.id && cat.taxonomyTree && (
               <div className="sidebar-subcats">
-                {/* Get unique subcategories from species data */}
-                {[...new Set(cat.species.map(s => s.subcategory))].map(sub => {
-                  const speciesInSubcat = cat.species.filter(s => s.subcategory === sub);
-                  const isExpanded = expandedSubcat === `${cat.id}-${sub}`;
+                {(cat.taxonomyTree.children || []).map(child => (
+                  <TaxonNode key={child.category} node={child} depth={0} cat={cat} />
+                ))}
+              </div>
+            )}
 
-                  return (
-                    <div key={sub}>
-                      <button
-                        onClick={() => {
-                          dispatch({ type: 'SEL_CAT', v: cat });
-                          dispatch({ type: 'SEL_SUBCAT', v: sub });
-                          dispatch({ type: 'SET_PAGE', p: 'species' });
-                          setExpandedSubcat(isExpanded ? null : `${cat.id}-${sub}`);
-                        }}
-                        className="sidebar-sublink"
-                        style={{
-                          background: state.selectedSubcat === sub ? 'rgba(82,201,123,.08)' : 'transparent',
-                          color: state.selectedSubcat === sub ? '#52c97b' : 'var(--text3)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '.4rem',
-                        }}
-                      >
-                        <span style={{
-                          display: 'inline-block',
-                          width: 4,
-                          height: 4,
-                          borderRadius: '50%',
-                          background: state.selectedSubcat === sub ? '#52c97b' : 'var(--border)',
-                          flexShrink: 0,
-                        }} />
-                        <span style={{ flex: 1, textAlign: 'left' }}>{sub}</span>
-                        <span style={{ fontSize: '.65rem', color: 'var(--text3)' }}>
-                          {isExpanded ? '▼' : '▶'}
-                        </span>
-                      </button>
-
-                      {/* Level 3: Species */}
-                      {isExpanded && speciesInSubcat.length > 0 && (
-                        <div style={{ paddingLeft: '0.8rem', borderLeft: '1px solid var(--border)' }}>
-                          {speciesInSubcat.map(species => (
-                            <button
-                              key={species.id}
-                              onClick={() => {
-                                console.log('[Sidebar] Clicking species:', { name: species.name, id: species.id, subcategory: species.subcategory });
-                                dispatch({ type: 'SEL_CAT', v: cat });
-                                dispatch({ type: 'SEL_SUBCAT', v: sub });
-                                dispatch({ type: 'SEL_SPECIES_FILTER', v: species });
-                                dispatch({ type: 'SET_PAGE', p: 'species' });
-                              }}
-                              className="sidebar-species"
-                              style={{
-                                display: 'block',
-                                width: '100%',
-                                padding: '.4rem .5rem',
-                                textAlign: 'left',
-                                fontSize: '.75rem',
-                                color: 'var(--text3)',
-                                background: 'transparent',
-                                border: 'none',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                              }}
-                              onMouseEnter={(e) => {
-                                e.target.style.color = '#52c97b';
-                                e.target.style.background = 'rgba(82,201,123,.04)';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.target.style.color = 'var(--text3)';
-                                e.target.style.background = 'transparent';
-                              }}
-                              title={species.name}
-                            >
-                              • {species.name}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+            {state.selectedCategory?.id === cat.id && !cat.taxonomyTree && cat.subcategories?.length > 0 && (
+              <div className="sidebar-subcats">
+                {cat.subcategories.map(sub => (
+                  <button
+                    key={sub}
+                    onClick={() => {
+                      dispatch({ type: 'SEL_SUBCAT', v: sub });
+                      dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+                      dispatch({ type: 'SET_PAGE', p: 'species' });
+                    }}
+                    className="sidebar-sublink"
+                    style={{
+                      background: state.selectedSubcat === sub ? 'rgba(82,201,123,.08)' : 'transparent',
+                      color: state.selectedSubcat === sub ? '#52c97b' : 'var(--text3)',
+                    }}
+                  >
+                    <span style={{ width: 4, height: 4, borderRadius: '50%', background: state.selectedSubcat === sub ? '#52c97b' : 'var(--border)', display: 'inline-block', flexShrink: 0 }} />
+                    {sub}
+                  </button>
+                ))}
               </div>
             )}
           </div>

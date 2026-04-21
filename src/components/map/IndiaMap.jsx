@@ -171,9 +171,9 @@ export default function IndiaMap({ sightings, loading }) {
           ))}
         </div>
  
-        <span style={{ fontSize: '.78rem', color: 'var(--text3)' }}>
+        {/* <span style={{ fontSize: '.78rem', color: 'var(--text3)' }}>
           {sightings.length} sighting{sightings.length !== 1 ? 's' : ''}
-        </span>
+        </span> */}
       </div>
  
       {/* ── Map ── */}
@@ -274,7 +274,7 @@ export default function IndiaMap({ sightings, loading }) {
       </div>
  
       {/* ── Stats row ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderTop: '1px solid var(--border)' }}>
+      {/* <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderTop: '1px solid var(--border)' }}>
         {[
           ['Total', sightings.length],
           // ['Confirmed', confirmedCount],
@@ -288,10 +288,10 @@ export default function IndiaMap({ sightings, loading }) {
             <div style={{ fontSize: '.7rem', color: 'var(--text3)', marginTop: 2 }}>{label}</div>
           </div>
         ))}
-      </div>
+      </div> */}
  
       {/* ── Sightings list ── */}
-      <div style={{ padding: '1rem 1.25rem' }}>
+      {/* <div style={{ padding: '1rem 1.25rem' }}>
         <div style={{ fontSize: '.7rem', color: 'var(--text3)', letterSpacing: '.07em', marginBottom: '.6rem' }}>
           {state.mapFilter.state && state.mapFilter.state !== 'All States'
             ? `SIGHTINGS IN ${state.mapFilter.state.toUpperCase()}`
@@ -330,7 +330,7 @@ export default function IndiaMap({ sightings, loading }) {
             })}
           </div>
         )}
-      </div>
+      </div> */}
  
       <style>{`
         .leaflet-popup-custom .leaflet-popup-content-wrapper {
