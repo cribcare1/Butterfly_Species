@@ -1,7 +1,4 @@
 
-
-// ─── Pure helpers ─────────────────────────────────────────────────────────────
-
 export function wikiImageUrl(imgName, width = 400, height = null) {
   if (!imgName) return null;
 
@@ -144,12 +141,11 @@ function isCoordInState(lat, lng, state, district) {
 }
 
 // ─── Sighting data validator ──────────────────────────────────────────────────
-function isValidSightingData(f, country, state, district) {
+function isValidSightingData(f, country, state) {
   const fileName = (f.file_name || f.img_name || '').trim();
   if (!fileName) return false;
   if (!country || country === 'Unknown') return false;
   if (country === 'India' && !state) return false;
-  if (country === 'Bhutan' && !district) return false;
   return true;
 }
 
@@ -160,8 +156,9 @@ function resolveLocationFromPath(categoryPath) {
   let district = '';
 
   for (const cat of categoryPath) {
-    if (!cat || !cat.startsWith('WLB_')) continue;
-    const raw = cat.replace(/^WLB_/, '');
+    if (!cat) continue;
+
+    const raw = cat.startsWith('WLB_') ? cat.replace(/^WLB_/, '') : cat;
 
     if (raw === 'India')  { country = 'India';  continue; }
     if (raw === 'Bhutan') { country = 'Bhutan'; continue; }
@@ -214,22 +211,13 @@ function _buildSighting(f, lat, lng, category, fullPath = []) {
   };
 }
 
-// ─── fetchWLBIndiaSightings ───────────────────────────────────────────────────
-// onProgress(count) is called every 50 valid sightings so the UI can show
-// a live counter while the tree is being traversed.
-export async function fetchWLBIndiaSightings(onProgress) {
-  const res = await fetch(
-    'https://wlbapi.toolforge.org/api/wlb/taxonomy/tree-search?category=WLB_India'
-  );
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json();
-
-  const sightings = [];
+// ─── _traverseTree ────────────────────────────────────────────────────────────
+function _traverseTree(rootNode, rootCategory, sightings, onProgress) {
   let rejectedCount = 0;
 
   const stack = [{
-    node:         data?.result || data,
-    category:     data?.result?.category || 'WLB_India',
+    node:         rootNode,
+    category:     rootNode?.category || rootCategory,
     ancestorPath: [],
   }];
 
@@ -250,19 +238,19 @@ export async function fetchWLBIndiaSightings(onProgress) {
 
       const { country, state, district } = resolveLocationFromPath(currentPath);
 
-      if (!isValidSightingData(f, country, state, district)) continue;
+      if (!isValidSightingData(f, country, state)) continue;
 
       if (!isCoordInState(lat, lng, state, district)) {
         rejectedCount++;
         console.warn(
-          `[bounds-reject] "${f.file_name}" tagged as "${state || district}" but coords (${lat}, ${lng}) are outside bounds`
+          `[bounds-reject] "${f.file_name}" tagged as "${state || district}" ` +
+          `but coords (${lat}, ${lng}) are outside bounds`
         );
         continue;
       }
 
       sightings.push(_buildSighting(f, lat, lng, currentCategory, currentPath));
 
-      // 🆕 Fire progress callback every 50 valid sightings
       if (onProgress && sightings.length % 50 === 0) {
         onProgress(sightings.length);
       }
@@ -277,22 +265,51 @@ export async function fetchWLBIndiaSightings(onProgress) {
     }
   }
 
-  // Fire final count
+  return rejectedCount;
+}
+
+// ─── fetchWLBIndiaSightings ───────────────────────────────────────────────────
+export async function fetchWLBIndiaSightings(onProgress) {
+  const [indiaRes, bhutanRes] = await Promise.allSettled([
+    fetch('https://wlbapi.toolforge.org/api/wlb/taxonomy/tree-search?category=WLB_India'),
+    fetch('https://wlbapi.toolforge.org/api/wlb/taxonomy/tree-search?category=WLB_Bhutan'),
+  ]);
+
+  const sightings     = [];
+  let   rejectedCount = 0;
+
+  if (indiaRes.status === 'fulfilled' && indiaRes.value.ok) {
+    const indiaData = await indiaRes.value.json();
+    const indiaRoot = indiaData?.result || indiaData;
+    rejectedCount += _traverseTree(indiaRoot, 'WLB_India', sightings, onProgress);
+    console.log(`[WLB] India sightings: ${sightings.length}`);
+  } else {
+    console.error('[WLB] India fetch failed:', indiaRes.reason ?? indiaRes.value?.status);
+  }
+
+  const afterIndia = sightings.length;
+
+  if (bhutanRes.status === 'fulfilled' && bhutanRes.value.ok) {
+    const bhutanData = await bhutanRes.value.json();
+    const bhutanRoot = bhutanData?.result || bhutanData;
+    rejectedCount += _traverseTree(bhutanRoot, 'WLB_Bhutan', sightings, onProgress);
+    console.log(`[WLB] Bhutan sightings added: ${sightings.length - afterIndia}`);
+  } else {
+    console.error('[WLB] Bhutan fetch failed:', bhutanRes.reason ?? bhutanRes.value?.status);
+  }
+
   if (onProgress && sightings.length % 50 !== 0) {
     onProgress(sightings.length);
   }
 
-  console.log(`[fetchWLBIndiaSightings] valid: ${sightings.length} | bounds-rejected: ${rejectedCount}`);
+  console.log(`[WLB] total: ${sightings.length} valid | ${rejectedCount} bounds-rejected`);
   return sightings;
 }
 
 // ─── buildSightingsFromFeatured ───────────────────────────────────────────────
 export function buildSightingsFromFeatured(featuredImages) {
   return featuredImages
-    .filter(f => {
-      if (!f.display_name || !f.display_name.trim()) return false;
-      return true;
-    })
+    .filter(f => f.display_name && f.display_name.trim())
     .map((f, i) => ({
       id:         `f${i}`,
       species:    f.display_name,
@@ -356,7 +373,8 @@ export async function fetchFeaturedImages() {
   return (data?.files || []).map(f => ({
     file_url:         f.image_url  || null,
     img_name:         f.file_name  || null,
-    imageUrl:         wikiImageUrl(f.image_url || f.file_name, 1200, 840),
+    // Only width passed — no height — so Wikimedia returns full proportional image.
+    imageUrl:         wikiImageUrl(f.image_url || f.file_name, 1200),
     id:               f.file_name,
     file_name:        f.file_name,
     image_url:        f.image_url,
@@ -458,14 +476,14 @@ export function buildBaseCategories() {
 }
 
 export async function loadFamilyTaxonomy(familyName, fi) {
-  const fam = FAMILY_META[fi];
-  const treeData = await fetchTaxonomyTree(familyName);
+  const fam        = FAMILY_META[fi];
+  const treeData   = await fetchTaxonomyTree(familyName);
   const treeResult = treeData?.result || null;
   const speciesDefs = extractSpeciesFromTree(treeResult);
 
   const species = speciesDefs.map((sp, si) => {
     const firstImg = sp.images[0];
-    let imageUrl = null;
+    let imageUrl   = null;
     if (firstImg?.file_url)      imageUrl = wikiImageUrl(firstImg.file_url, 400);
     else if (firstImg?.img_name) imageUrl = wikiImageUrl(firstImg.img_name, 400);
 

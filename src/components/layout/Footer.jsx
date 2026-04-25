@@ -1,4 +1,9 @@
+
 import { useApp } from '../../context/AppContext';
+
+// ── Asset imports ────────────────────────────────────────────────────────────
+import borsLogo      from '../../assets/bors-logo.png.jpeg';
+import natureMatesLogo from '../../assets/naturemates-logo.jpeg.jpeg';
 
 const SOCIAL = [
   {
@@ -42,11 +47,19 @@ const SOCIAL = [
   },
 ];
 
-const STATS = [
-  { value: '1,200+', label: 'Species Documented' },
-  { value: '34', label: 'States Covered' },
-  { value: '8,400+', label: 'Citizen Sightings' },
-  { value: '18 yrs', label: 'Field Research' },
+const PARTNERS = [
+  {
+    name: 'BoRS',
+    fullName: 'Biodiversity of Rabindra Sarovar',
+    logo: borsLogo,
+    href: '#',
+  },
+  {
+    name: 'Nature Mates',
+    fullName: 'Nature Club',
+    logo: natureMatesLogo,
+    href: 'https://naturematessociety.org',
+  },
 ];
 
 const navLinks = [
@@ -76,44 +89,20 @@ export default function Footer() {
         pointerEvents: 'none',
       }} />
 
-      {/* stats strip */}
-      {/* <div style={{
-        background: 'linear-gradient(180deg, rgba(82,201,123,.04) 0%, transparent 100%)',
-        borderTop: '1px solid var(--border)',
-        borderBottom: '1px solid var(--border)',
-        padding: '1.75rem 1.5rem',
-      }}>
-        <div style={{
-          maxWidth: 1100, margin: '0 auto',
-          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem',
-        }}
-          className="footer-stats"
-        >
-          {STATS.map(({ value, label }) => (
-            <div key={label} style={{ textAlign: 'center' }}>
-              <div style={{
-                fontFamily: 'var(--ff)', fontSize: 'clamp(1.4rem, 3vw, 2rem)',
-                color: 'var(--green)', lineHeight: 1,
-              }}>{value}</div>
-              <div style={{
-                fontSize: '.7rem', color: 'var(--text3)',
-                letterSpacing: '.08em', textTransform: 'uppercase', marginTop: '.3rem',
-              }}>{label}</div>
-            </div>
-          ))}
-        </div>
-      </div> */}
-
       {/* main footer grid */}
       <div style={{ padding: '3rem 1.5rem 2rem' }}>
-        <div style={{
-          maxWidth: 1100, margin: '0 auto',
-          display: 'grid', gridTemplateColumns: '2.2fr 1fr 1.4fr', gap: '3rem',
-        }}
+        <div
+          style={{
+            maxWidth: 1100, margin: '0 auto',
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: '3rem',
+            alignItems: 'flex-start',
+          }}
           className="footer-grid"
         >
-          {/* Brand */}
-          <div>
+          {/* ── Brand ───────────────────────────────────────────────────── */}
+          <div style={{ flex: '0 0 280px' }}>
             <button
               onClick={() => dispatch({ type: 'SET_PAGE', p: 'home' })}
               style={{
@@ -155,51 +144,8 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Navigate */}
-          {/* <div>
-            <div style={{
-              fontSize: '.65rem', color: 'var(--green)', letterSpacing: '.14em',
-              textTransform: 'uppercase', marginBottom: '1rem',
-              display: 'flex', alignItems: 'center', gap: '.5rem',
-            }}>
-              <span style={{
-                display: 'inline-block', width: 16, height: 1,
-                background: 'var(--green)', opacity: .6,
-              }} />
-              Navigate
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '.1rem' }}>
-              {navLinks.map(([id, label]) => (
-                <button key={id}
-                  onClick={() => dispatch({ type: 'SET_PAGE', p: id })}
-                  style={{
-                    background: 'none', border: 'none', textAlign: 'left',
-                    color: 'var(--text2)', fontFamily: 'var(--fb)',
-                    fontSize: '.85rem', cursor: 'pointer',
-                    padding: '.38rem 0', transition: 'color .18s, padding-left .18s',
-                    display: 'flex', alignItems: 'center', gap: '.5rem',
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.color = 'var(--green)';
-                    e.currentTarget.style.paddingLeft = '.35rem';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.color = 'var(--text2)';
-                    e.currentTarget.style.paddingLeft = '0';
-                  }}
-                >
-                  <span style={{
-                    width: 4, height: 4, borderRadius: '50%',
-                    background: 'var(--green)', opacity: .45, flexShrink: 0,
-                  }} />
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div> */}
-
-          {/* Social */}
-          <div>
+          {/* ── Social ──────────────────────────────────────────────────── */}
+          <div style={{ flex: '0 0 160px', margin: '0 auto' }}>
             <div style={{
               fontSize: '.65rem', color: 'var(--green)', letterSpacing: '.14em',
               textTransform: 'uppercase', marginBottom: '1rem',
@@ -241,6 +187,93 @@ export default function Footer() {
               ))}
             </div>
           </div>
+
+          {/* ── Partners ────────────────────────────────────────────────── */}
+          <div style={{ flex: '0 0 220px' }}>
+            <div style={{
+              fontSize: '.65rem', color: 'var(--green)', letterSpacing: '.14em',
+              textTransform: 'uppercase', marginBottom: '1rem',
+              display: 'flex', alignItems: 'center', gap: '.5rem',
+            }}>
+              <span style={{
+                display: 'inline-block', width: 16, height: 1,
+                background: 'var(--green)', opacity: .6,
+              }} />
+              Our Partners
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {PARTNERS.map(({ name, fullName, logo, href }) => (
+                <a
+                  key={name}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '.85rem',
+                    padding: '.6rem .8rem',
+                    borderRadius: 10,
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg3)',
+                    textDecoration: 'none',
+                    transition: 'all .22s',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = 'var(--border2)';
+                    e.currentTarget.style.background = 'var(--greenGlow)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = 'var(--border)';
+                    e.currentTarget.style.background = 'var(--bg3)';
+                    e.currentTarget.style.transform = 'none';
+                  }}
+                >
+                  {/* Logo */}
+                  <div style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 8,
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    background: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <img
+                      src={logo}
+                      alt={name}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                      }}
+                    />
+                  </div>
+
+                  {/* Name */}
+                  <div>
+                    <div style={{
+                      fontSize: '.88rem',
+                      fontWeight: 600,
+                      color: 'var(--text)',
+                      lineHeight: 1.2,
+                    }}>{name}</div>
+                    <div style={{
+                      fontSize: '.7rem',
+                      color: 'var(--text3)',
+                      marginTop: '.2rem',
+                      lineHeight: 1.3,
+                    }}>{fullName}</div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -292,12 +325,11 @@ export default function Footer() {
       </div>
 
       <style>{`
-        @media(max-width:760px){
-          .footer-stats { grid-template-columns: repeat(2,1fr) !important; }
-          .footer-grid  { grid-template-columns: 1fr !important; gap: 2rem !important; }
+        @media(max-width:900px){
+          .footer-grid { grid-template-columns: 1fr 1fr !important; gap: 2rem !important; }
         }
-        @media(max-width:480px){
-          .footer-stats { grid-template-columns: repeat(2,1fr) !important; }
+        @media(max-width:560px){
+          .footer-grid { grid-template-columns: 1fr !important; gap: 2rem !important; }
         }
       `}</style>
     </footer>
