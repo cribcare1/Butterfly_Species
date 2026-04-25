@@ -8,16 +8,12 @@ import {
   fetchStats,
   fetchFeaturedImages,
   fetchWLBIndiaSightings,
-  buildSightingsFromFeatured,
   fetchSpeciesImages,
   buildBaseCategories,
   loadFamilyTaxonomy,
 } from '../utils/appUtils';
 
-// Re-export utilities so existing import paths keep working
 export { wikiImageUrl, fetchSpeciesImages, fetchFeaturedImages } from '../utils/appUtils';
-
-// ─── Initial state ────────────────────────────────────────────────────────────
 
 const TOTAL_FAMILIES = FAMILY_META.length;
 
@@ -29,6 +25,7 @@ const initialState = {
   categories:            [],
   selectedCategory:      null,
   selectedSubcat:        'all',
+  selectedSubcatPath:    [],
   selectedSpeciesFilter: null,
   selectedSpecies:       null,
   search:                '',
@@ -42,7 +39,7 @@ const initialState = {
   sightings:             [],
   sightingsLoading:      false,
   sightingsError:        null,
-  mapFilter:             { state: 'All States', country: 'All Countries' },
+  mapFilter:             { country: 'India', region: 'All' },
   taxonExpanded:         {},
   speciesImages:         [],
   speciesImagesLoading:  false,
@@ -54,8 +51,6 @@ const initialState = {
   featuredImagesLoading: false,
   featuredImagesError:   null,
 };
-
-// ─── Reducer ──────────────────────────────────────────────────────────────────
 
 function reducer(state, action) {
   switch (action.type) {
@@ -80,15 +75,30 @@ function reducer(state, action) {
     case 'SEL_CAT':
       return {
         ...state,
-        selectedCategory:   action.v,
-        selectedSubcat:     'all',
-        selectedSpecies:    null,
-        speciesImages:      [],
-        speciesImagesError: null,
-        taxonomyData:       null,
-        taxonomyError:      null,
+        selectedCategory:      action.v,
+        selectedSubcat:        'all',
+        selectedSubcatPath:    [],
+        selectedSpecies:       null,
+        speciesImages:         [],
+        speciesImagesError:    null,
+        taxonomyData:          null,
+        taxonomyError:         null,
       };
-    case 'SEL_SUBCAT':         return { ...state, selectedSubcat: action.v };
+
+    case 'SEL_SUBCAT':
+      return {
+        ...state,
+        selectedSubcat:     action.v,
+        selectedSubcatPath: [],
+      };
+
+    case 'SEL_SUBCAT_PATH':
+      return {
+        ...state,
+        selectedSubcat:     action.category,
+        selectedSubcatPath: action.path,
+      };
+
     case 'SEL_SPECIES_FILTER': return { ...state, selectedSpeciesFilter: action.v };
     case 'SEL_SPECIES':
       return {
@@ -104,7 +114,17 @@ function reducer(state, action) {
     case 'SIGHT_LOAD': return { ...state, sightingsLoading: true, sightingsError: null };
     case 'SIGHT_OK':   return { ...state, sightingsLoading: false, sightings: action.v, sightingsError: null };
     case 'SIGHT_ERR':  return { ...state, sightingsLoading: false, sightings: [], sightingsError: action.v };
-    case 'MAP_FILTER': return { ...state, mapFilter: { ...state.mapFilter, ...action.v } };
+
+    case 'MAP_FILTER': {
+      const incoming   = action.v || {};
+      const prevCountry = state.mapFilter?.country;
+      const newCountry  = incoming.country ?? prevCountry;
+      const newRegion   = incoming.country && incoming.country !== prevCountry
+        ? (incoming.region ?? 'All')
+        : (incoming.region ?? state.mapFilter?.region ?? 'All');
+      return { ...state, mapFilter: { country: newCountry, region: newRegion } };
+    }
+
     case 'TAXON_TOGGLE':
       return { ...state, taxonExpanded: { ...state.taxonExpanded, [action.id]: !state.taxonExpanded[action.id] } };
     case 'SPECIES_IMG_LOAD':
@@ -170,8 +190,6 @@ function reducer(state, action) {
   }
 }
 
-// ─── Context ──────────────────────────────────────────────────────────────────
-
 const Ctx = createContext(null);
 
 export const useApp = () => {
@@ -180,8 +198,6 @@ export const useApp = () => {
   return ctx;
 };
 
-// ─── Provider ─────────────────────────────────────────────────────────────────
-
 export function Provider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
@@ -189,139 +205,52 @@ export function Provider({ children }) {
     document.documentElement.setAttribute('data-theme', state.theme);
   }, [state.theme]);
 
-  // const loadAll = useCallback(async () => {
-  //   dispatch({ type: 'CAT_LOAD' });
-  //   dispatch({ type: 'TEAM_LOAD' });
-  //   dispatch({ type: 'SIGHT_LOAD' });
-  //   dispatch({ type: 'FEATURED_IMG_LOAD' });
-  //   dispatch({ type: 'TEAM_OK',  v: STATIC_TEAM });
-  //   dispatch({ type: 'STATS_OK', v: FALLBACK_STATS });
-
-  //   // Stats (best-effort upgrade)
-  //   fetchStats()
-  //     .then(v => dispatch({ type: 'STATS_OK', v }))
-  //     .catch(() => {});
-
-  //   // Featured images — gallery page only, independent of map
-  //   fetchFeaturedImages()
-  //     .then(featured => dispatch({ type: 'FEATURED_IMG_OK', v: featured }))
-  //     .catch(err => dispatch({ type: 'FEATURED_IMG_ERR', v: err?.message || 'Failed to fetch featured images' }));
-
-  //   // Map sightings — WLB_India tree (real GPS coords), fallback to featured
-  //   fetchWLBIndiaSightings()
-  //     .then(sightings => {
-  //       if (sightings.length) {
-  //         dispatch({ type: 'SIGHT_OK', v: sightings });
-  //       } else {
-  //         fetchFeaturedImages()
-  //           .then(featured => {
-  //             const fallback = buildSightingsFromFeatured(featured);
-  //             if (fallback.length) dispatch({ type: 'SIGHT_OK', v: fallback });
-  //             else dispatch({ type: 'SIGHT_ERR', v: 'No sightings with GPS coordinates found.' });
-  //           })
-  //           .catch(err => dispatch({ type: 'SIGHT_ERR', v: err?.message || 'Failed to load sightings' }));
-  //       }
-  //     })
-  //     .catch(err => {
-  //       console.warn('[loadAll] WLB_India failed, falling back to featured images:', err.message);
-  //       fetchFeaturedImages()
-  //         .then(featured => {
-  //           const fallback = buildSightingsFromFeatured(featured);
-  //           if (fallback.length) dispatch({ type: 'SIGHT_OK', v: fallback });
-  //           else dispatch({ type: 'SIGHT_ERR', v: err?.message || 'Failed to load sightings' });
-  //         })
-  //         .catch(() => dispatch({ type: 'SIGHT_ERR', v: err?.message || 'Failed to load sightings' }));
-  //     });
-
-  //   // Family taxonomy — all 6 fired in parallel
-  //   const baseCategories = buildBaseCategories();
-  //   dispatch({ type: 'RESET_FAMILIES_COUNT', count: baseCategories.length });
-  //   dispatch({ type: 'CAT_OK', v: baseCategories });
-
-  //   baseCategories.forEach((cat, fi) => {
-  //     dispatch({ type: 'FAMILY_TREE_LOAD', family: cat.name });
-  //     loadFamilyTaxonomy(cat.name, fi)
-  //       .then(update => dispatch({ type: 'FAMILY_TREE_OK', family: cat.name, v: update }))
-  //       .catch(err => {
-  //         console.error(`[loadAll] Failed to load ${cat.name}:`, err);
-  //         dispatch({ type: 'FAMILY_TREE_ERR', family: cat.name });
-  //       });
-  //   });
-  // }, []);
-
-
   const loadAll = useCallback(async () => {
-  // ── Phase 1: Home page APIs (fire immediately) ──────────────────────────
-  dispatch({ type: 'TEAM_OK',  v: STATIC_TEAM });
-  dispatch({ type: 'STATS_OK', v: FALLBACK_STATS });
-  dispatch({ type: 'FEATURED_IMG_LOAD' });
-  dispatch({ type: 'SIGHT_LOAD' });
+    dispatch({ type: 'TEAM_OK',  v: STATIC_TEAM });
+    dispatch({ type: 'STATS_OK', v: FALLBACK_STATS });
 
-  // Stats — best-effort upgrade, non-blocking
-  fetchStats()
-    .then(v => dispatch({ type: 'STATS_OK', v }))
-    .catch(() => {});
+    fetchStats()
+      .then(v => dispatch({ type: 'STATS_OK', v }))
+      .catch(() => {});
 
-  // Featured images — needed by carousel on home page
-  const featuredPromise = fetchFeaturedImages()
-    .then(featured => {
-      dispatch({ type: 'FEATURED_IMG_OK', v: featured });
-      return featured;
-    })
-    .catch(err => {
-      dispatch({ type: 'FEATURED_IMG_ERR', v: err?.message || 'Failed to fetch featured images' });
-      return [];
-    });
+    dispatch({ type: 'FEATURED_IMG_LOAD' });
+    fetchFeaturedImages()
+      .then(featured => dispatch({ type: 'FEATURED_IMG_OK', v: featured }))
+      .catch(err     => dispatch({ type: 'FEATURED_IMG_ERR', v: err?.message || 'Failed to fetch featured images' }));
 
-  // Map sightings — uses WLB_India, falls back to featured
-  fetchWLBIndiaSightings()
-    .then(sightings => {
-      if (sightings.length) {
-        dispatch({ type: 'SIGHT_OK', v: sightings });
-      } else {
-        // fallback: reuse featuredPromise result (already in-flight)
-        featuredPromise.then(featured => {
-          const fallback = buildSightingsFromFeatured(featured);
-          if (fallback.length) dispatch({ type: 'SIGHT_OK', v: fallback });
-          else dispatch({ type: 'SIGHT_ERR', v: 'No sightings with GPS coordinates found.' });
-        });
-      }
-    })
-    .catch(err => {
-      console.warn('[loadAll] WLB_India failed, falling back to featured images:', err.message);
-      featuredPromise.then(featured => {
-        const fallback = buildSightingsFromFeatured(featured);
-        if (fallback.length) dispatch({ type: 'SIGHT_OK', v: fallback });
-        else dispatch({ type: 'SIGHT_ERR', v: err?.message || 'Failed to load sightings' });
-      });
-    });
-
-  // ── Phase 2: Family taxonomies — deferred until home page APIs are done ──
-  // Wait for both featured + sightings to settle before hammering taxonomy
-  await featuredPromise;
-
-  dispatch({ type: 'CAT_LOAD' });
-  const baseCategories = buildBaseCategories();
-  dispatch({ type: 'RESET_FAMILIES_COUNT', count: baseCategories.length });
-  dispatch({ type: 'CAT_OK', v: baseCategories });
-
-  baseCategories.forEach((cat, fi) => {
-    dispatch({ type: 'FAMILY_TREE_LOAD', family: cat.name });
-    loadFamilyTaxonomy(cat.name, fi)
-      .then(update => dispatch({ type: 'FAMILY_TREE_OK', family: cat.name, v: update }))
+    dispatch({ type: 'SIGHT_LOAD' });
+    fetchWLBIndiaSightings()
+      .then(sightings => {
+        if (sightings.length) {
+          dispatch({ type: 'SIGHT_OK', v: sightings });
+        } else {
+          dispatch({ type: 'SIGHT_ERR', v: 'No sightings with GPS coordinates found.' });
+        }
+      })
       .catch(err => {
-        console.error(`[loadAll] Failed to load ${cat.name}:`, err);
-        dispatch({ type: 'FAMILY_TREE_ERR', family: cat.name });
+        dispatch({ type: 'SIGHT_ERR', v: err?.message || 'Failed to load sightings' });
       });
-  });
 
-}, []);
+    dispatch({ type: 'CAT_LOAD' });
+    const baseCategories = buildBaseCategories();
+    dispatch({ type: 'RESET_FAMILIES_COUNT', count: baseCategories.length });
+    dispatch({ type: 'CAT_OK', v: baseCategories });
+
+    baseCategories.forEach((cat, fi) => {
+      dispatch({ type: 'FAMILY_TREE_LOAD', family: cat.name });
+      loadFamilyTaxonomy(cat.name, fi)
+        .then(update => dispatch({ type: 'FAMILY_TREE_OK', family: cat.name, v: update }))
+        .catch(err => {
+          console.error(`[loadAll] Failed to load ${cat.name}:`, err);
+          dispatch({ type: 'FAMILY_TREE_ERR', family: cat.name });
+        });
+    });
+  }, []);
+
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  // Fetch species images on-demand when a species without cached images is selected
   const scientific = state.selectedSpecies?.scientific;
   const images     = state.selectedSpecies?._images;
-
   useEffect(() => {
     if (!scientific || images?.length) return;
     let cancelled = false;
@@ -333,9 +262,15 @@ export function Provider({ children }) {
   }, [scientific, images]);
 
   const visibleSightings = state.sightings.filter(s => {
-    const f = state.mapFilter;
-    if (f.state   && f.state   !== 'All States'    && s.state   !== f.state)   return false;
-    if (f.country && f.country !== 'All Countries' && s.country !== f.country) return false;
+    const { country, region } = state.mapFilter;
+    if (country && country !== 'All Countries') {
+      if (s.country !== country) return false;
+    }
+    const isAllRegion = !region || region === 'All' || region === 'All States' || region === 'All Districts';
+    if (!isAllRegion) {
+      const regionValue = country === 'Bhutan' ? s.district : s.state;
+      if (regionValue !== region) return false;
+    }
     return true;
   });
 

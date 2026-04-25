@@ -1,3 +1,5 @@
+
+
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 
@@ -5,38 +7,37 @@ function isFileLeaf(node) {
   return node.type === 'files' || (Array.isArray(node.files) && node.files.length > 0);
 }
 
-function TaxonNode({ node, depth, cat }) {
+function TaxonNode({ node, depth, cat, ancestorPath }) {
   const { state, dispatch } = useApp();
   const [expanded, setExpanded] = useState(depth === 0);
 
   const displayName = node.category.replace(/_/g, ' ');
 
-  // A node is a leaf if it has no children, is a file node,
-  // OR all its children are file nodes (= species level, don't drill into subspecies)
-  const allChildrenFiles = Array.isArray(node.children) &&
-    node.children.length > 0 &&
-    node.children.every(isFileLeaf);
   const isLeaf = isFileLeaf(node) ||
     !Array.isArray(node.children) ||
-    node.children.length === 0 ||
-    allChildrenFiles;
+    node.children.length === 0;
 
   const isSelected = state.selectedSubcat === node.category ||
     state.selectedSpeciesFilter?.path?.includes(node.category);
 
+  // Full path from root down to this node
+  const fullPath = [...ancestorPath, { category: node.category, label: displayName }];
+
   const handleClick = () => {
-    dispatch({ type: 'SEL_CAT', v: cat });
+    // Only switch family if it's actually changing
+    if (state.selectedCategory?.id !== cat.id) {
+      dispatch({ type: 'SEL_CAT', v: cat });
+    }
     dispatch({ type: 'SET_PAGE', p: 'species' });
 
     if (isLeaf) {
-      // Species-level leaf: just set the species filter (no subcat change)
       const species = cat.species.find(s => s.path && s.path.includes(node.category));
       if (species) {
         dispatch({ type: 'SEL_SPECIES_FILTER', v: species });
       }
     } else {
       setExpanded(e => !e);
-      dispatch({ type: 'SEL_SUBCAT', v: node.category });
+      dispatch({ type: 'SEL_SUBCAT_PATH', category: node.category, path: fullPath });
       dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
     }
   };
@@ -63,7 +64,7 @@ function TaxonNode({ node, depth, cat }) {
         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {displayName}
         </span>
-        {node.count > 0 && (
+        {depth === 0 && node.count > 0 && (
           <span style={{ fontSize: '.6rem', color: 'var(--text3)', flexShrink: 0 }}>{node.count}</span>
         )}
       </button>
@@ -71,7 +72,13 @@ function TaxonNode({ node, depth, cat }) {
       {expanded && !isLeaf && (
         <div style={{ borderLeft: '1px solid var(--border)', marginLeft: `${0.9 + depth * 0.9}rem` }}>
           {node.children.map(child => (
-            <TaxonNode key={child.category} node={child} depth={depth + 1} cat={cat} />
+            <TaxonNode
+              key={child.category}
+              node={child}
+              depth={depth + 1}
+              cat={cat}
+              ancestorPath={fullPath}
+            />
           ))}
         </div>
       )}
@@ -146,7 +153,13 @@ export default function Sidebar() {
             {state.selectedCategory?.id === cat.id && cat.taxonomyTree && (
               <div className="sidebar-subcats">
                 {(cat.taxonomyTree.children || []).map(child => (
-                  <TaxonNode key={child.category} node={child} depth={0} cat={cat} />
+                  <TaxonNode
+                    key={child.category}
+                    node={child}
+                    depth={0}
+                    cat={cat}
+                    ancestorPath={[]}
+                  />
                 ))}
               </div>
             )}
