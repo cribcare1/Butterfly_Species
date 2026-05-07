@@ -53,27 +53,43 @@ const initialState = {
 };
 
 function reducer(state, action) {
+  // Debug logging for selection changes
+  if (['SEL_CAT', 'SEL_SUBCAT', 'SEL_SUBCAT_PATH', 'SEL_SPECIES_FILTER', 'SET_PAGE'].includes(action.type)) {
+    console.log(`\n📍 [${action.type}]`, {
+      category: action.v?.name || action.category || '—',
+      subcat: action.v === 'all' ? 'all' : action.v,
+      path: action.path || '—',
+      speciesFilter: action.v?.name || '—',
+      page: action.p || '—',
+    });
+  }
+
+  let newState;
+
   switch (action.type) {
     case 'SET_PAGE':
-      return { ...state, page: action.p, mobileMenu: false, selectedSpecies: null, selectedMember: null };
-    case 'TOGGLE_MOBILE':  return { ...state, mobileMenu: !state.mobileMenu };
-    case 'TOGGLE_SIDEBAR': return { ...state, sidebarOpen: !state.sidebarOpen };
+      newState = { ...state, page: action.p, mobileMenu: false, selectedSpecies: null, selectedMember: null };
+      break;
+    case 'TOGGLE_MOBILE':  newState = { ...state, mobileMenu: !state.mobileMenu }; break;
+    case 'TOGGLE_SIDEBAR': newState = { ...state, sidebarOpen: !state.sidebarOpen }; break;
     case 'TOGGLE_THEME': {
       const next = state.theme === 'dark' ? 'light' : 'dark';
       try { localStorage.setItem('bf-theme', next); } catch {}
-      return { ...state, theme: next };
+      newState = { ...state, theme: next };
+      break;
     }
-    case 'SET_SEARCH':  return { ...state, search: action.v };
-    case 'STATS_LOAD':  return { ...state, statsLoading: true };
-    case 'STATS_OK':    return { ...state, statsLoading: false, stats: action.v };
-    case 'CAT_LOAD':    return { ...state, catLoading: true };
-    case 'CAT_OK':      return { ...state, catLoading: false, categories: action.v };
+    case 'SET_SEARCH':  newState = { ...state, search: action.v }; break;
+    case 'STATS_LOAD':  newState = { ...state, statsLoading: true }; break;
+    case 'STATS_OK':    newState = { ...state, statsLoading: false, stats: action.v }; break;
+    case 'CAT_LOAD':    newState = { ...state, catLoading: true }; break;
+    case 'CAT_OK':      newState = { ...state, catLoading: false, categories: action.v }; break;
 
     case 'RESET_FAMILIES_COUNT':
-      return { ...state, familiesLoadingCount: action.count };
+      newState = { ...state, familiesLoadingCount: action.count };
+      break;
 
     case 'SEL_CAT':
-      return {
+      newState = {
         ...state,
         selectedCategory:      action.v,
         selectedSubcat:        'all',
@@ -84,36 +100,44 @@ function reducer(state, action) {
         taxonomyData:          null,
         taxonomyError:         null,
       };
+      break;
 
     case 'SEL_SUBCAT':
-      return {
+      newState = {
         ...state,
-        selectedSubcat:     action.v,
-        selectedSubcatPath: [],
+        selectedSubcat:        action.v,
+        selectedSubcatPath:    [],
+        selectedSpeciesFilter: null,
+        selectedSpecies:       null,
       };
+      break;
 
     case 'SEL_SUBCAT_PATH':
-      return {
+      newState = {
         ...state,
-        selectedSubcat:     action.category,
-        selectedSubcatPath: action.path,
+        selectedSubcat:        action.category,
+        selectedSubcatPath:    action.path,
+        selectedSpeciesFilter: null,
+        selectedSpecies:       null,
       };
+      break;
 
-    case 'SEL_SPECIES_FILTER': return { ...state, selectedSpeciesFilter: action.v };
+    case 'SEL_SPECIES_FILTER': newState = { ...state, selectedSpeciesFilter: action.v }; break;
     case 'SEL_SPECIES':
-      return {
+      newState = {
         ...state,
         selectedSpecies:      action.v,
         speciesImages:        action.v?._images || [],
         speciesImagesLoading: !!(action.v && !action.v._images),
         speciesImagesError:   null,
       };
-    case 'TEAM_LOAD':  return { ...state, teamLoading: true };
-    case 'TEAM_OK':    return { ...state, teamLoading: false, team: action.v };
-    case 'SEL_MEMBER': return { ...state, selectedMember: action.v };
-    case 'SIGHT_LOAD': return { ...state, sightingsLoading: true, sightingsError: null };
-    case 'SIGHT_OK':   return { ...state, sightingsLoading: false, sightings: action.v, sightingsError: null };
-    case 'SIGHT_ERR':  return { ...state, sightingsLoading: false, sightings: [], sightingsError: action.v };
+      break;
+    case 'TEAM_LOAD':  newState = { ...state, teamLoading: true }; break;
+    case 'TEAM_OK':    newState = { ...state, teamLoading: false, team: action.v }; break;
+    case 'SEL_MEMBER': newState = { ...state, selectedMember: action.v }; break;
+    case 'SIGHT_LOAD': newState = { ...state, sightingsLoading: true, sightingsError: null }; break;
+    case 'SIGHT_OK':   newState = { ...state, sightingsLoading: false, sightings: action.v, sightingsError: null }; break;
+    case 'SIGHT_ERR':  newState = { ...state, sightingsLoading: false, sightings: [], sightingsError: action.v }; break;
 
     case 'MAP_FILTER': {
       const incoming   = action.v || {};
@@ -122,47 +146,59 @@ function reducer(state, action) {
       const newRegion   = incoming.country && incoming.country !== prevCountry
         ? (incoming.region ?? 'All')
         : (incoming.region ?? state.mapFilter?.region ?? 'All');
-      return { ...state, mapFilter: { country: newCountry, region: newRegion } };
+      newState = { ...state, mapFilter: { country: newCountry, region: newRegion } };
+      break;
     }
 
     case 'TAXON_TOGGLE':
-      return { ...state, taxonExpanded: { ...state.taxonExpanded, [action.id]: !state.taxonExpanded[action.id] } };
+      newState = { ...state, taxonExpanded: { ...state.taxonExpanded, [action.id]: !state.taxonExpanded[action.id] } };
+      break;
     case 'SPECIES_IMG_LOAD':
-      return { ...state, speciesImagesLoading: true, speciesImagesError: null };
+      newState = { ...state, speciesImagesLoading: true, speciesImagesError: null };
+      break;
     case 'SPECIES_IMG_OK':
-      return { ...state, speciesImagesLoading: false, speciesImages: action.v };
+      newState = { ...state, speciesImagesLoading: false, speciesImages: action.v };
+      break;
     case 'SPECIES_IMG_ERR':
-      return { ...state, speciesImagesLoading: false, speciesImagesError: action.v };
+      newState = { ...state, speciesImagesLoading: false, speciesImagesError: action.v };
+      break;
     case 'TAXONOMY_LOAD':
-      return { ...state, taxonomyLoading: true, taxonomyError: null, taxonomyData: null };
+      newState = { ...state, taxonomyLoading: true, taxonomyError: null, taxonomyData: null };
+      break;
     case 'TAXONOMY_OK':
-      return { ...state, taxonomyLoading: false, taxonomyData: action.v };
+      newState = { ...state, taxonomyLoading: false, taxonomyData: action.v };
+      break;
     case 'TAXONOMY_ERR':
-      return { ...state, taxonomyLoading: false, taxonomyError: action.v };
+      newState = { ...state, taxonomyLoading: false, taxonomyError: action.v };
+      break;
     case 'FEATURED_IMG_LOAD':
-      return { ...state, featuredImagesLoading: true, featuredImagesError: null };
+      newState = { ...state, featuredImagesLoading: true, featuredImagesError: null };
+      break;
     case 'FEATURED_IMG_OK':
-      return { ...state, featuredImagesLoading: false, featuredImages: action.v };
+      newState = { ...state, featuredImagesLoading: false, featuredImages: action.v };
+      break;
     case 'FEATURED_IMG_ERR':
-      return { ...state, featuredImagesLoading: false, featuredImagesError: action.v };
+      newState = { ...state, featuredImagesLoading: false, featuredImagesError: action.v };
+      break;
 
     case 'FAMILY_TREE_LOAD': {
       const updatedCats = state.categories.map(c =>
         c.name === action.family ? { ...c, taxonomyLoading: true } : c
       );
-      return {
+      newState = {
         ...state,
         categories: updatedCats,
         selectedCategory: state.selectedCategory?.name === action.family
           ? { ...state.selectedCategory, taxonomyLoading: true }
           : state.selectedCategory,
       };
+      break;
     }
     case 'FAMILY_TREE_OK': {
       const updatedCats = state.categories.map(c =>
         c.name === action.family ? { ...c, ...action.v, taxonomyLoading: false } : c
       );
-      return {
+      newState = {
         ...state,
         categories:           updatedCats,
         familiesLoadingCount: Math.max(0, state.familiesLoadingCount - 1),
@@ -170,12 +206,13 @@ function reducer(state, action) {
           ? { ...state.selectedCategory, ...action.v, taxonomyLoading: false }
           : state.selectedCategory,
       };
+      break;
     }
     case 'FAMILY_TREE_ERR': {
       const updatedCats = state.categories.map(c =>
         c.name === action.family ? { ...c, taxonomyLoading: false } : c
       );
-      return {
+      newState = {
         ...state,
         categories:           updatedCats,
         familiesLoadingCount: Math.max(0, state.familiesLoadingCount - 1),
@@ -183,11 +220,24 @@ function reducer(state, action) {
           ? { ...state.selectedCategory, taxonomyLoading: false }
           : state.selectedCategory,
       };
+      break;
     }
 
     default:
-      return state;
+      newState = state;
   }
+
+  // Debug logging for selection state changes
+  if (['SEL_CAT', 'SEL_SUBCAT', 'SEL_SUBCAT_PATH', 'SEL_SPECIES_FILTER'].includes(action.type)) {
+    console.log(`✅ Result State:`, {
+      category: newState.selectedCategory?.name || 'none',
+      subcat: newState.selectedSubcat || 'all',
+      speciesFilter: newState.selectedSpeciesFilter?.name || 'none',
+      displayWillShow: newState.selectedSpeciesFilter ? '🔍 Single species' : newState.selectedSubcat !== 'all' ? '📋 Species from subcategory' : '📚 All species from category',
+    });
+  }
+
+  return newState;
 }
 
 const Ctx = createContext(null);
@@ -274,7 +324,12 @@ export function Provider({ children }) {
     return true;
   });
 
-  const allSpecies      = state.categories.flatMap(c => c.species);
+  const allSpecies      = state.categories.flatMap(c => {
+    if (typeof c.subcategories === 'object' && !Array.isArray(c.subcategories)) {
+      return Object.values(c.subcategories).flat();
+    }
+    return c.species || [];
+  });
   const filteredSpecies = allSpecies.filter(s => {
     if (!state.search || state.search.length < 2) return true;
     const q = state.search.toLowerCase();

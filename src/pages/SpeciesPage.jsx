@@ -1,13 +1,952 @@
 
 
+// import { useState } from 'react';
+// import { useApp } from '../context/AppContext';
+// import Loader from '../components/shared/Loader';
+// import IndiaMap from '../components/map/IndiaMap';
+
+// // ─────────────────────────────────────────────────────────────────────────────
+// // CLOSE BUTTON
+// // ─────────────────────────────────────────────────────────────────────────────
+// function CloseBtn({ onClick }) {
+//   return (
+//     <button
+//       onClick={onClick}
+//       style={{
+//         position: 'absolute', top: '1rem', right: '1rem',
+//         background: 'rgba(255,255,255,.08)', border: '1px solid var(--border)',
+//         color: 'var(--text2)', fontSize: '1.1rem',
+//         width: 32, height: 32, borderRadius: '50%',
+//         cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+//         lineHeight: 1,
+//       }}
+//       aria-label="Close"
+//     >
+//       ✕
+//     </button>
+//   );
+// }
+
+// // ─────────────────────────────────────────────────────────────────────────────
+// // SPECIES DETAIL PANEL
+// // ─────────────────────────────────────────────────────────────────────────────
+// function SpeciesDetailPanel({ species, images, imagesLoading, imagesError, onClose }) {
+//   return (
+//     <div style={{
+//       position: 'fixed', top: 0, right: 0, bottom: 0, width: '480px',
+//       maxWidth: '95vw', background: 'var(--bg2, #111)',
+//       borderLeft: '1px solid var(--border)', zIndex: 200,
+//       display: 'flex', flexDirection: 'column', overflowY: 'auto',
+//       boxShadow: '-8px 0 40px rgba(0,0,0,.45)',
+//       animation: 'slideInRight .28s cubic-bezier(.4,0,.2,1)',
+//     }}>
+//       {/* Header */}
+//       <div style={{
+//         padding: '1.5rem 1.5rem 1rem',
+//         borderBottom: '1px solid var(--border)',
+//         position: 'sticky', top: 0,
+//         background: 'var(--bg2, #111)', zIndex: 1,
+//       }}>
+//         <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', gap: '1rem' }}>
+//           <div>
+//             <h2 style={{ fontSize: '1.35rem', color: 'var(--text)', marginBottom: '.2rem', fontFamily: 'var(--ff)' }}>
+//               {species.name}
+//             </h2>
+//             <p style={{ fontSize: '.8rem', color: 'var(--text3)', fontStyle: 'italic' }}>{species.scientific}</p>
+//           </div>
+//           <button
+//             style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '.3rem .7rem', cursor: 'pointer', fontSize: '.8rem', flexShrink: 0 }}
+//             onClick={onClose}
+//           >
+//             Close
+//           </button>
+//         </div>
+//       </div>
+
+//       {/* Body */}
+//       <div style={{ flex: 1, overflowY: 'auto' }}>
+//         <div style={{ margin: '0 1.5rem 1rem', background: 'var(--bg3, #1a1a1a)', borderRadius: 10, border: '1px solid var(--border)', padding: '1rem' }}>
+//           <p style={{ fontSize: '.82rem', color: 'var(--text2)', lineHeight: 1.65 }}>{species.description}</p>
+//         </div>
+
+//         {species.status && (
+//           <div style={{ margin: '0 1.5rem 1rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.5rem' }}>
+//             <div style={{ background: 'var(--bg3, #1a1a1a)', borderRadius: 8, border: '1px solid var(--border)', padding: '.75rem' }}>
+//               <span style={{ fontSize: '.65rem', textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text3)' }}>Status</span>
+//               <span style={{ display: 'block', fontSize: '.85rem', color: '#52c97b', fontWeight: 600, marginTop: '.3rem' }}>{species.status}</span>
+//             </div>
+//             {species.region && (
+//               <div style={{ background: 'var(--bg3, #1a1a1a)', borderRadius: 8, border: '1px solid var(--border)', padding: '.75rem' }}>
+//                 <span style={{ fontSize: '.65rem', textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text3)' }}>Region</span>
+//                 <span style={{ display: 'block', fontSize: '.85rem', color: 'var(--text)', fontWeight: 600, marginTop: '.3rem' }}>{species.region}</span>
+//               </div>
+//             )}
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
+
+// // ─────────────────────────────────────────────────────────────────────────────
+// // SPECIES CARD
+// // ─────────────────────────────────────────────────────────────────────────────
+// function SpeciesCard({ s, isSelected, onClick }) {
+//   return (
+//     <div
+//       className="card fu"
+//       style={{ padding: 0, cursor: 'pointer', overflow: 'hidden', outline: isSelected ? '2px solid #52c97b' : 'none' }}
+//       onClick={onClick}
+//     >
+//       {/* Thumbnail */}
+//       <div style={{ width: '100%', height: 160, background: `${s.color}14`, position: 'relative', overflow: 'hidden' }}>
+//         {s.imageUrl && s.imageUrl.trim() !== '' ? (
+//           <img
+//             src={s.imageUrl}
+//             alt={s.name}
+//             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+//             onError={(e) => {
+//               e.target.style.display = 'none';
+//               if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+//             }}
+//           />
+//         ) : null}
+//         {/* Fallback */}
+//         <div style={{
+//           display: (s.imageUrl && s.imageUrl.trim() !== '') ? 'none' : 'flex',
+//           position: 'absolute', inset: 0,
+//           alignItems: 'center', justifyContent: 'center',
+//           fontSize: '3rem', background: `${s.color}14`,
+//         }}>🦋</div>
+//         {s.status && (
+//           <div style={{ position: 'absolute', top: 8, right: 8, display: 'inline-block', padding: '.2rem .6rem', borderRadius: 20, fontSize: '.67rem', fontWeight: 600, background: 'rgba(82,201,123,.15)', color: '#52c97b', border: '1px solid rgba(82,201,123,.4)' }}>
+//             {s.status}
+//           </div>
+//         )}
+//       </div>
+
+//       {/* Card body */}
+//       <div style={{ padding: '1rem' }}>
+//         <div style={{ fontFamily: 'var(--ff)', fontSize: '1.05rem', color: 'var(--text)', marginBottom: '.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+//           {s.name}
+//         </div>
+//         <div style={{ fontSize: '.73rem', color: 'var(--text3)', fontStyle: 'italic', marginBottom: '.6rem' }}>
+//           {s.scientific}
+//         </div>
+//         <p style={{ fontSize: '.82rem', color: 'var(--text2)', lineHeight: 1.65, marginBottom: '.75rem' }}>
+//           {s.description.substring(0, 100)}…
+//         </p>
+//         <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap', marginBottom: '.75rem' }}>
+//           {s.region      && <span className="tag t-blue"   style={{ fontSize: '.66rem' }}>{s.region}</span>}
+//           {s.subcategory && <span className="tag t-purple" style={{ fontSize: '.66rem' }}>{s.subcategory}</span>}
+//         </div>
+//         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '.75rem', borderTop: '1px solid var(--border)' }}>
+//           <span style={{ fontSize: '.78rem', color: 'var(--text3)' }}>🪶 {s.wingspan}</span>
+//           <button className="btn-sm" onClick={e => { e.stopPropagation(); onClick(); }}>
+//             Photos & details →
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+// // ─────────────────────────────────────────────────────────────────────────────
+// // FAMILIES LOADING SKELETON
+// // ─────────────────────────────────────────────────────────────────────────────
+// function FamiliesLoader({ loaded, total }) {
+//   const families = [
+//     { name: 'Papilionidae', color: '#f59e0b' },
+//     { name: 'Nymphalidae',  color: '#8b5cf6' },
+//     { name: 'Pieridae',     color: '#eab308' },
+//     { name: 'Lycaenidae',   color: '#60a5fa' },
+//     { name: 'Hesperiidae',  color: '#f97316' },
+//     { name: 'Riodinidae',   color: '#34d399' },
+//   ];
+
+//   return (
+//     <div style={{ padding: '2rem 0' }}>
+//       <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+//         <Loader />
+//         <p style={{ marginTop: '1rem', color: 'var(--text2)', fontFamily: 'var(--ff)', fontSize: '1.1rem', fontStyle: 'italic' }}>
+//           Loading butterfly families…
+//         </p>
+//         <p style={{ marginTop: '.35rem', color: 'var(--text3)', fontSize: '.8rem' }}>
+//           {loaded} of {total} families ready
+//         </p>
+//         <div style={{ margin: '1rem auto 0', width: '260px', height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
+//           <div style={{ height: '100%', width: `${(loaded / total) * 100}%`, background: 'linear-gradient(90deg, #52c97b, #34d399)', borderRadius: '2px', transition: 'width .4s ease' }} />
+//         </div>
+//       </div>
+
+//       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.75rem', justifyContent: 'center', marginBottom: '2.5rem' }}>
+//         {families.map((fam, i) => {
+//           const done = i < loaded;
+//           return (
+//             <div
+//               key={fam.name}
+//               style={{
+//                 display: 'flex', alignItems: 'center', gap: '.5rem',
+//                 padding: '.45rem 1rem', borderRadius: '50px',
+//                 background: done ? `${fam.color}18` : 'var(--bg3)',
+//                 border: `1px solid ${done ? fam.color + '55' : 'var(--border)'}`,
+//                 transition: 'all .4s ease',
+//               }}
+//             >
+//               <span style={{ fontSize: '.8rem' }}>{done ? '✓' : '·'}</span>
+//               <span style={{ fontSize: '.8rem', color: done ? fam.color : 'var(--text3)', fontFamily: 'var(--fb)', fontStyle: 'italic', transition: 'color .4s ease' }}>
+//                 {fam.name}
+//               </span>
+//             </div>
+//           );
+//         })}
+//       </div>
+
+//       <div className="g3">
+//         {Array.from({ length: 6 }).map((_, i) => (
+//           <div key={i} className="card" style={{ padding: 0, overflow: 'hidden', opacity: 0.45, animationDelay: `${i * 0.08}s` }}>
+//             <div style={{ width: '100%', height: 160, background: 'var(--bg3)', position: 'relative', overflow: 'hidden' }}>
+//               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,.04) 50%, transparent 100%)', backgroundSize: '200% 100%', animation: 'shimmer 1.6s infinite' }} />
+//             </div>
+//             <div style={{ padding: '1rem' }}>
+//               <div style={{ height: 16, width: '65%', background: 'var(--bg3)', borderRadius: 6, marginBottom: '.5rem' }} />
+//               <div style={{ height: 12, width: '45%', background: 'var(--bg3)', borderRadius: 6, marginBottom: '.75rem' }} />
+//               <div style={{ height: 10, width: '90%', background: 'var(--bg3)', borderRadius: 6, marginBottom: '.4rem' }} />
+//               <div style={{ height: 10, width: '75%', background: 'var(--bg3)', borderRadius: 6, marginBottom: '.4rem' }} />
+//               <div style={{ height: 10, width: '55%', background: 'var(--bg3)', borderRadius: 6 }} />
+//             </div>
+//           </div>
+//         ))}
+//       </div>
+//     </div>
+//   );
+// }
+
+// // ─────────────────────────────────────────────────────────────────────────────
+// // SPECIES PAGE
+// // ─────────────────────────────────────────────────────────────────────────────
+// export default function SpeciesPage() {
+//   const { state, dispatch, filteredSpecies } = useApp();
+//   const [view, setView]             = useState('grid');
+//   const [lightbox, setLightbox]     = useState(null);
+//   const [filterOpen, setFilterOpen] = useState(false);
+
+//   const cats    = state.categories;
+//   const selCat  = state.selectedCategory;
+//   const selSpec = state.selectedSpecies;
+
+//   const isLoading   = state.familiesLoadingCount > 0;
+//   const loadedCount = 6 - state.familiesLoadingCount;
+
+//   const displaySpecies = state.selectedSpeciesFilter
+//     ? [state.selectedSpeciesFilter]
+//     : selCat
+//     ? selCat.species.filter(s =>
+//         state.selectedSubcat === 'all' ||
+//         (s.path ? s.path.includes(state.selectedSubcat) : s.subcategory === state.selectedSubcat)
+//       )
+//     : (state.search && state.search.length >= 2
+//         ? filteredSpecies
+//         : cats.flatMap(c => c.species));
+
+//   return (
+//     <div style={{ padding: '7rem 0 4rem 0', maxWidth: '100%' }}>
+
+//       <div style={{ marginBottom: '2.5rem' }}>
+//         <div className="sec-eye">Living Winged Jewels</div>
+//         <h1 className="sec-h">Species <em>Database</em></h1>
+//       </div>
+
+//       {/* Toolbar */}
+//       <div style={{ display: 'flex', gap: '.75rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+
+//         {/* ── Breadcrumb ── */}
+//         <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem', fontSize: '.78rem', color: 'var(--text2)', flexWrap: 'wrap' }}>
+
+//           {/* All Families */}
+//           <span
+//             style={{ cursor: selCat || state.selectedSpeciesFilter ? 'pointer' : 'default', color: !selCat && !state.selectedSpeciesFilter ? '#52c97b' : 'var(--text3)' }}
+//             onClick={() => {
+//               dispatch({ type: 'SEL_CAT', v: null });
+//               dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//             }}
+//           >
+//             All Families
+//           </span>
+
+//           {/* Family level */}
+//           {selCat && (
+//             <>
+//               <span style={{ color: 'var(--text3)' }}>›</span>
+//               <span
+//                 style={{
+//                   color: state.selectedSubcatPath.length > 0 || state.selectedSpeciesFilter ? 'var(--text3)' : '#52c97b',
+//                   cursor: state.selectedSubcatPath.length > 0 || state.selectedSpeciesFilter ? 'pointer' : 'default',
+//                 }}
+//                 onClick={() => {
+//                   dispatch({ type: 'SEL_SUBCAT', v: 'all' });
+//                   dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                 }}
+//               >
+//                 {selCat.name}
+//               </span>
+//             </>
+//           )}
+
+//           {/* All intermediate nested levels */}
+//           {selCat && state.selectedSubcatPath.map((crumb, i) => {
+//             const isLast   = i === state.selectedSubcatPath.length - 1;
+//             const isActive = isLast && !state.selectedSpeciesFilter;
+//             return (
+//               <span key={crumb.category} style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}>
+//                 <span style={{ color: 'var(--text3)' }}>›</span>
+//                 <span
+//                   style={{ color: isActive ? '#52c97b' : 'var(--text3)', cursor: !isActive ? 'pointer' : 'default' }}
+//                   onClick={() => {
+//                     if (!isActive) {
+//                       const slicedPath = state.selectedSubcatPath.slice(0, i + 1);
+//                       dispatch({ type: 'SEL_SUBCAT_PATH', category: crumb.category, path: slicedPath });
+//                       dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                     }
+//                   }}
+//                 >
+//                   {crumb.label}
+//                 </span>
+//               </span>
+//             );
+//           })}
+
+//           {/* Species filter level */}
+//           {state.selectedSpeciesFilter && (
+//             <>
+//               <span style={{ color: 'var(--text3)' }}>›</span>
+//               <span style={{ color: '#52c97b' }}>{state.selectedSpeciesFilter.name}</span>
+//             </>
+//           )}
+//         </div>
+
+//         <div style={{ marginLeft: 'auto', display: 'flex', gap: '.4rem' }}>
+//           {[['grid', '⊞ Grid'], ['map', '🗺 Map']].map(([v, l]) => (
+//             <button
+//               key={v}
+//               className="btn-sm"
+//               style={{ background: view === v ? 'rgba(82,201,123,.2)' : 'var(--greenGlow)' }}
+//               onClick={() => setView(v)}
+//             >
+//               {l}
+//             </button>
+//           ))}
+//         </div>
+
+//         <span style={{ fontSize: '.78rem', color: 'var(--text3)' }}>
+//           {isLoading ? 'Loading…' : `${displaySpecies.length} species`}
+//         </span>
+//       </div>
+
+//       {/* Main content */}
+//       {isLoading ? (
+//         <FamiliesLoader loaded={loadedCount} total={6} />
+//       ) : view === 'map' ? (
+//         <IndiaMap sightings={state.sightings} loading={state.sightingsLoading} />
+//       ) : (
+//         <>
+//           <div className="g3">
+//             {displaySpecies.map((s) => (
+//               <SpeciesCard
+//                 key={s.id}
+//                 s={s}
+//                 isSelected={selSpec?.id === s.id}
+//                 onClick={() => dispatch({ type: 'SEL_SPECIES', v: s })}
+//               />
+//             ))}
+//           </div>
+
+//           {displaySpecies.length === 0 && (
+//             <div style={{ textAlign: 'center', padding: '5rem 1rem', color: 'var(--text3)' }}>
+//               <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🔍</div>
+//               <p style={{ fontFamily: 'var(--ff)', fontSize: '1.1rem' }}>No species match your filters.</p>
+//             </div>
+//           )}
+//         </>
+//       )}
+
+//       {/* Detail panel */}
+//       {selSpec && (
+//         <>
+//           <div
+//             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 199 }}
+//             onClick={() => dispatch({ type: 'SEL_SPECIES', v: null })}
+//           />
+//           <SpeciesDetailPanel
+//             species={selSpec}
+//             images={state.speciesImages}
+//             imagesLoading={state.speciesImagesLoading}
+//             imagesError={state.speciesImagesError}
+//             onClose={() => dispatch({ type: 'SEL_SPECIES', v: null })}
+//           />
+//         </>
+//       )}
+
+//       {/* Gallery lightbox */}
+//       {lightbox && (
+//         <div
+//           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}
+//           onClick={() => setLightbox(null)}
+//         >
+//           <button
+//             style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(255,255,255,.12)', border: 'none', color: '#fff', fontSize: '1.4rem', width: 40, height: 40, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+//             onClick={() => setLightbox(null)}
+//           >✕</button>
+//           <img
+//             src={lightbox.url}
+//             alt={lightbox.caption}
+//             style={{ maxWidth: '90vw', maxHeight: '85vh', borderRadius: '12px', objectFit: 'contain', boxShadow: '0 8px 64px rgba(0,0,0,.8)', animation: 'fadeIn .2s ease' }}
+//             onClick={e => e.stopPropagation()}
+//           />
+//           {lightbox.caption && (
+//             <div style={{ position: 'absolute', bottom: '1.5rem', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,.7)', color: '#ccc', padding: '.5rem 1.2rem', borderRadius: '20px', fontSize: '.75rem', textAlign: 'center', maxWidth: '80vw', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+//               <div style={{ fontWeight: 600, marginBottom: '.2rem' }}>{lightbox.species}</div>
+//               {lightbox.caption}
+//             </div>
+//           )}
+//         </div>
+//       )}
+
+//       {/* Filter modal */}
+//       {filterOpen && (
+//         <div className="modal-bg" onClick={() => setFilterOpen(false)}>
+//           <div className="modal" onClick={e => e.stopPropagation()}>
+//             <CloseBtn onClick={() => setFilterOpen(false)} />
+//             <h2 style={{ fontFamily: 'var(--ff)', fontSize: '1.5rem', color: 'var(--text)', marginBottom: '1rem' }}>Filter Species</h2>
+//             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+//               <button
+//                 onClick={() => {
+//                   dispatch({ type: 'SEL_CAT', v: null });
+//                   dispatch({ type: 'SEL_SUBCAT', v: 'all' });
+//                   dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                   setFilterOpen(false);
+//                 }}
+//                 style={{ background: !state.selectedCategory ? 'rgba(82,201,123,.2)' : 'var(--greenGlow)', border: '1px solid var(--border)', color: 'var(--text)', padding: '.75rem 1rem', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--fb)' }}
+//               >
+//                 All Families
+//               </button>
+//               {state.categories.map(cat => (
+//                 <div key={cat.id}>
+//                   <button
+//                     onClick={() => {
+//                       dispatch({ type: 'SEL_CAT', v: cat });
+//                       dispatch({ type: 'SEL_SUBCAT', v: 'all' });
+//                       dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                       setFilterOpen(false);
+//                     }}
+//                     style={{ background: state.selectedCategory?.id === cat.id ? 'rgba(82,201,123,.2)' : 'var(--greenGlow)', border: '1px solid var(--border)', color: 'var(--text)', padding: '.75rem 1rem', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--fb)', width: '100%' }}
+//                   >
+//                     {cat.name} ({cat.count})
+//                   </button>
+//                   {state.selectedCategory?.id === cat.id && cat.subcategories.map(sub => (
+//                     <button
+//                       key={sub}
+//                       onClick={() => {
+//                         dispatch({ type: 'SEL_SUBCAT', v: sub });
+//                         dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                         setFilterOpen(false);
+//                       }}
+//                       style={{ background: state.selectedSubcat === sub ? 'rgba(82,201,123,.2)' : 'var(--greenGlow)', border: '1px solid var(--border)', color: 'var(--text)', padding: '.5rem 2rem', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--fb)', width: '100%', marginTop: '.25rem' }}
+//                     >
+//                       {sub}
+//                     </button>
+//                   ))}
+//                 </div>
+//               ))}
+//             </div>
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
+
+
+// import { useState } from 'react';
+// import { useApp } from '../context/AppContext';
+// import Loader from '../components/shared/Loader';
+// import IndiaMap from '../components/map/IndiaMap';
+
+// // ─────────────────────────────────────────────────────────────────────────────
+// // CLOSE BUTTON
+// // ─────────────────────────────────────────────────────────────────────────────
+// function CloseBtn({ onClick }) {
+//   return (
+//     <button
+//       onClick={onClick}
+//       style={{
+//         position: 'absolute', top: '1rem', right: '1rem',
+//         background: 'rgba(255,255,255,.08)', border: '1px solid var(--border)',
+//         color: 'var(--text2)', fontSize: '1.1rem',
+//         width: 32, height: 32, borderRadius: '50%',
+//         cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+//         lineHeight: 1,
+//       }}
+//       aria-label="Close"
+//     >
+//       ✕
+//     </button>
+//   );
+// }
+
+// // ─────────────────────────────────────────────────────────────────────────────
+// // SPECIES DETAIL PANEL
+// // ─────────────────────────────────────────────────────────────────────────────
+// function SpeciesDetailPanel({ species, images, imagesLoading, imagesError, onClose }) {
+//   return (
+//     <div style={{
+//       position: 'fixed', top: 0, right: 0, bottom: 0, width: '480px',
+//       maxWidth: '95vw', background: 'var(--bg2, #111)',
+//       borderLeft: '1px solid var(--border)', zIndex: 200,
+//       display: 'flex', flexDirection: 'column', overflowY: 'auto',
+//       boxShadow: '-8px 0 40px rgba(0,0,0,.45)',
+//       animation: 'slideInRight .28s cubic-bezier(.4,0,.2,1)',
+//     }}>
+//       {/* Header */}
+//       <div style={{
+//         padding: '1.5rem 1.5rem 1rem',
+//         borderBottom: '1px solid var(--border)',
+//         position: 'sticky', top: 0,
+//         background: 'var(--bg2, #111)', zIndex: 1,
+//       }}>
+//         <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', gap: '1rem' }}>
+//           <div>
+//             <h2 style={{ fontSize: '1.35rem', color: 'var(--text)', marginBottom: '.2rem', fontFamily: 'var(--ff)' }}>
+//               {species.name}
+//             </h2>
+//             <p style={{ fontSize: '.8rem', color: 'var(--text3)', fontStyle: 'italic' }}>{species.scientific}</p>
+//           </div>
+//           <button
+//             style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '.3rem .7rem', cursor: 'pointer', fontSize: '.8rem', flexShrink: 0 }}
+//             onClick={onClose}
+//           >
+//             Close
+//           </button>
+//         </div>
+//       </div>
+
+//       {/* Body */}
+//       <div style={{ flex: 1, overflowY: 'auto' }}>
+//         <div style={{ margin: '0 1.5rem 1rem', background: 'var(--bg3, #1a1a1a)', borderRadius: 10, border: '1px solid var(--border)', padding: '1rem' }}>
+//           <p style={{ fontSize: '.82rem', color: 'var(--text2)', lineHeight: 1.65 }}>{species.description}</p>
+//         </div>
+
+//         {species.status && (
+//           <div style={{ margin: '0 1.5rem 1rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.5rem' }}>
+//             <div style={{ background: 'var(--bg3, #1a1a1a)', borderRadius: 8, border: '1px solid var(--border)', padding: '.75rem' }}>
+//               <span style={{ fontSize: '.65rem', textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text3)' }}>Status</span>
+//               <span style={{ display: 'block', fontSize: '.85rem', color: '#52c97b', fontWeight: 600, marginTop: '.3rem' }}>{species.status}</span>
+//             </div>
+//             {species.region && (
+//               <div style={{ background: 'var(--bg3, #1a1a1a)', borderRadius: 8, border: '1px solid var(--border)', padding: '.75rem' }}>
+//                 <span style={{ fontSize: '.65rem', textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text3)' }}>Region</span>
+//                 <span style={{ display: 'block', fontSize: '.85rem', color: 'var(--text)', fontWeight: 600, marginTop: '.3rem' }}>{species.region}</span>
+//               </div>
+//             )}
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
+
+// // ─────────────────────────────────────────────────────────────────────────────
+// // SPECIES CARD
+// // ─────────────────────────────────────────────────────────────────────────────
+// function SpeciesCard({ s, isSelected, onClick }) {
+//   return (
+//     <div
+//       className="card fu"
+//       style={{ padding: 0, cursor: 'pointer', overflow: 'hidden', outline: isSelected ? '2px solid #52c97b' : 'none' }}
+//       onClick={onClick}
+//     >
+//       {/* Thumbnail */}
+//       <div style={{ width: '100%', height: 160, background: `${s.color}14`, position: 'relative', overflow: 'hidden' }}>
+//         {s.imageUrl && s.imageUrl.trim() !== '' ? (
+//           <img
+//             src={s.imageUrl}
+//             alt={s.name}
+//             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+//             onError={(e) => {
+//               e.target.style.display = 'none';
+//               if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+//             }}
+//           />
+//         ) : null}
+//         {/* Fallback */}
+//         <div style={{
+//           display: (s.imageUrl && s.imageUrl.trim() !== '') ? 'none' : 'flex',
+//           position: 'absolute', inset: 0,
+//           alignItems: 'center', justifyContent: 'center',
+//           fontSize: '3rem', background: `${s.color}14`,
+//         }}>🦋</div>
+//         {s.status && (
+//           <div style={{ position: 'absolute', top: 8, right: 8, display: 'inline-block', padding: '.2rem .6rem', borderRadius: 20, fontSize: '.67rem', fontWeight: 600, background: 'rgba(82,201,123,.15)', color: '#52c97b', border: '1px solid rgba(82,201,123,.4)' }}>
+//             {s.status}
+//           </div>
+//         )}
+//       </div>
+
+//       {/* Card body */}
+//       <div style={{ padding: '1rem' }}>
+//         <div style={{ fontFamily: 'var(--ff)', fontSize: '1.05rem', color: 'var(--text)', marginBottom: '.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+//           {s.name}
+//         </div>
+//         <div style={{ fontSize: '.73rem', color: 'var(--text3)', fontStyle: 'italic', marginBottom: '.6rem' }}>
+//           {s.scientific}
+//         </div>
+//         <p style={{ fontSize: '.82rem', color: 'var(--text2)', lineHeight: 1.65, marginBottom: '.75rem' }}>
+//           {s.description.substring(0, 100)}…
+//         </p>
+//         <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap', marginBottom: '.75rem' }}>
+//           {s.region      && <span className="tag t-blue"   style={{ fontSize: '.66rem' }}>{s.region}</span>}
+//           {s.subcategory && <span className="tag t-purple" style={{ fontSize: '.66rem' }}>{s.subcategory}</span>}
+//         </div>
+//         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '.75rem', borderTop: '1px solid var(--border)' }}>
+//           <span style={{ fontSize: '.78rem', color: 'var(--text3)' }}>🪶 {s.wingspan}</span>
+//           <button className="btn-sm" onClick={e => { e.stopPropagation(); onClick(); }}>
+//             Photos & details →
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+// // ─────────────────────────────────────────────────────────────────────────────
+// // FAMILIES LOADING SKELETON
+// // ─────────────────────────────────────────────────────────────────────────────
+// function FamiliesLoader({ loaded, total }) {
+//   const families = [
+//     { name: 'Papilionidae', color: '#f59e0b' },
+//     { name: 'Nymphalidae',  color: '#8b5cf6' },
+//     { name: 'Pieridae',     color: '#eab308' },
+//     { name: 'Lycaenidae',   color: '#60a5fa' },
+//     { name: 'Hesperiidae',  color: '#f97316' },
+//     { name: 'Riodinidae',   color: '#34d399' },
+//   ];
+
+//   return (
+//     <div style={{ padding: '2rem 0' }}>
+//       <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+//         <Loader />
+//         <p style={{ marginTop: '1rem', color: 'var(--text2)', fontFamily: 'var(--ff)', fontSize: '1.1rem', fontStyle: 'italic' }}>
+//           Loading butterfly families…
+//         </p>
+//         <p style={{ marginTop: '.35rem', color: 'var(--text3)', fontSize: '.8rem' }}>
+//           {loaded} of {total} families ready
+//         </p>
+//         <div style={{ margin: '1rem auto 0', width: '260px', height: '4px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
+//           <div style={{ height: '100%', width: `${(loaded / total) * 100}%`, background: 'linear-gradient(90deg, #52c97b, #34d399)', borderRadius: '2px', transition: 'width .4s ease' }} />
+//         </div>
+//       </div>
+
+//       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.75rem', justifyContent: 'center', marginBottom: '2.5rem' }}>
+//         {families.map((fam, i) => {
+//           const done = i < loaded;
+//           return (
+//             <div
+//               key={fam.name}
+//               style={{
+//                 display: 'flex', alignItems: 'center', gap: '.5rem',
+//                 padding: '.45rem 1rem', borderRadius: '50px',
+//                 background: done ? `${fam.color}18` : 'var(--bg3)',
+//                 border: `1px solid ${done ? fam.color + '55' : 'var(--border)'}`,
+//                 transition: 'all .4s ease',
+//               }}
+//             >
+//               <span style={{ fontSize: '.8rem' }}>{done ? '✓' : '·'}</span>
+//               <span style={{ fontSize: '.8rem', color: done ? fam.color : 'var(--text3)', fontFamily: 'var(--fb)', fontStyle: 'italic', transition: 'color .4s ease' }}>
+//                 {fam.name}
+//               </span>
+//             </div>
+//           );
+//         })}
+//       </div>
+
+//       <div className="g3">
+//         {Array.from({ length: 6 }).map((_, i) => (
+//           <div key={i} className="card" style={{ padding: 0, overflow: 'hidden', opacity: 0.45, animationDelay: `${i * 0.08}s` }}>
+//             <div style={{ width: '100%', height: 160, background: 'var(--bg3)', position: 'relative', overflow: 'hidden' }}>
+//               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,.04) 50%, transparent 100%)', backgroundSize: '200% 100%', animation: 'shimmer 1.6s infinite' }} />
+//             </div>
+//             <div style={{ padding: '1rem' }}>
+//               <div style={{ height: 16, width: '65%', background: 'var(--bg3)', borderRadius: 6, marginBottom: '.5rem' }} />
+//               <div style={{ height: 12, width: '45%', background: 'var(--bg3)', borderRadius: 6, marginBottom: '.75rem' }} />
+//               <div style={{ height: 10, width: '90%', background: 'var(--bg3)', borderRadius: 6, marginBottom: '.4rem' }} />
+//               <div style={{ height: 10, width: '75%', background: 'var(--bg3)', borderRadius: 6, marginBottom: '.4rem' }} />
+//               <div style={{ height: 10, width: '55%', background: 'var(--bg3)', borderRadius: 6 }} />
+//             </div>
+//           </div>
+//         ))}
+//       </div>
+//     </div>
+//   );
+// }
+
+// // ─────────────────────────────────────────────────────────────────────────────
+// // SPECIES PAGE
+// // ─────────────────────────────────────────────────────────────────────────────
+// export default function SpeciesPage() {
+//   const { state, dispatch, filteredSpecies } = useApp();
+//   const [view, setView]             = useState('grid');
+//   const [lightbox, setLightbox]     = useState(null);
+//   const [filterOpen, setFilterOpen] = useState(false);
+
+//   const cats    = state.categories;
+//   const selCat  = state.selectedCategory;
+//   const selSpec = state.selectedSpecies;
+
+//   const isLoading   = state.familiesLoadingCount > 0;
+//   const loadedCount = 6 - state.familiesLoadingCount;
+
+//   // ── Build the list of species to show in the grid ──────────────────────────
+//   const displaySpecies = state.selectedSpeciesFilter
+//     ? [state.selectedSpeciesFilter]
+//     : selCat
+//     ? selCat.species.filter(s => {
+//         if (state.selectedSubcat === 'all') return true;
+//         // path is an array of taxonomy segments (e.g. ['Papilioninae','Atrophaneura','…'])
+//         if (Array.isArray(s.path)) return s.path.includes(state.selectedSubcat);
+//         // flat subcategory string fallback
+//         return s.subcategory === state.selectedSubcat;
+//       })
+//     : state.search && state.search.length >= 2
+//     ? filteredSpecies
+//     : cats.flatMap(c => c.species);
+
+//   return (
+//     <div style={{ padding: '7rem 0 4rem 0', maxWidth: '100%' }}>
+
+//       <div style={{ marginBottom: '2.5rem' }}>
+//         <div className="sec-eye">Living Winged Jewels</div>
+//         <h1 className="sec-h">Species <em>Database</em></h1>
+//       </div>
+
+//       {/* Toolbar */}
+//       <div style={{ display: 'flex', gap: '.75rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+
+//         {/* ── Breadcrumb ── */}
+//         <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem', fontSize: '.78rem', color: 'var(--text2)', flexWrap: 'wrap' }}>
+
+//           {/* All Families */}
+//           <span
+//             style={{ cursor: selCat || state.selectedSpeciesFilter ? 'pointer' : 'default', color: !selCat && !state.selectedSpeciesFilter ? '#52c97b' : 'var(--text3)' }}
+//             onClick={() => {
+//               dispatch({ type: 'SEL_CAT', v: null });
+//               dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//             }}
+//           >
+//             All Families
+//           </span>
+
+//           {/* Family level */}
+//           {selCat && (
+//             <>
+//               <span style={{ color: 'var(--text3)' }}>›</span>
+//               <span
+//                 style={{
+//                   color: (state.selectedSubcatPath && state.selectedSubcatPath.length > 0) || state.selectedSpeciesFilter ? 'var(--text3)' : '#52c97b',
+//                   cursor: (state.selectedSubcatPath && state.selectedSubcatPath.length > 0) || state.selectedSpeciesFilter ? 'pointer' : 'default',
+//                 }}
+//                 onClick={() => {
+//                   dispatch({ type: 'SEL_SUBCAT', v: 'all' });
+//                   dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                 }}
+//               >
+//                 {selCat.name}
+//               </span>
+//             </>
+//           )}
+
+//           {/* All intermediate nested levels */}
+//           {selCat && (state.selectedSubcatPath || []).map((crumb, i) => {
+//             const isLast   = i === state.selectedSubcatPath.length - 1;
+//             const isActive = isLast && !state.selectedSpeciesFilter;
+//             return (
+//               <span key={crumb.category} style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}>
+//                 <span style={{ color: 'var(--text3)' }}>›</span>
+//                 <span
+//                   style={{ color: isActive ? '#52c97b' : 'var(--text3)', cursor: !isActive ? 'pointer' : 'default' }}
+//                   onClick={() => {
+//                     if (!isActive) {
+//                       const slicedPath = state.selectedSubcatPath.slice(0, i + 1);
+//                       dispatch({ type: 'SEL_SUBCAT_PATH', category: crumb.category, path: slicedPath });
+//                       dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                     }
+//                   }}
+//                 >
+//                   {crumb.label}
+//                 </span>
+//               </span>
+//             );
+//           })}
+
+//           {/* Species filter level */}
+//           {state.selectedSpeciesFilter && (
+//             <>
+//               <span style={{ color: 'var(--text3)' }}>›</span>
+//               <span style={{ color: '#52c97b' }}>{state.selectedSpeciesFilter.name}</span>
+//             </>
+//           )}
+//         </div>
+
+//         <div style={{ marginLeft: 'auto', display: 'flex', gap: '.4rem' }}>
+//           {[['grid', '⊞ Grid'], ['map', '🗺 Map']].map(([v, l]) => (
+//             <button
+//               key={v}
+//               className="btn-sm"
+//               style={{ background: view === v ? 'rgba(82,201,123,.2)' : 'var(--greenGlow)' }}
+//               onClick={() => setView(v)}
+//             >
+//               {l}
+//             </button>
+//           ))}
+//         </div>
+
+//         <span style={{ fontSize: '.78rem', color: 'var(--text3)' }}>
+//           {isLoading ? 'Loading…' : `${displaySpecies.length} species`}
+//         </span>
+//       </div>
+
+//       {/* Main content */}
+//       {isLoading ? (
+//         <FamiliesLoader loaded={loadedCount} total={6} />
+//       ) : view === 'map' ? (
+//         <IndiaMap sightings={state.sightings} loading={state.sightingsLoading} />
+//       ) : (
+//         <>
+//           <div className="g3">
+//             {displaySpecies.map((s) => (
+//               <SpeciesCard
+//                 key={s.id}
+//                 s={s}
+//                 isSelected={selSpec?.id === s.id}
+//                 onClick={() => dispatch({ type: 'SEL_SPECIES', v: s })}
+//               />
+//             ))}
+//           </div>
+
+//           {displaySpecies.length === 0 && (
+//             <div style={{ textAlign: 'center', padding: '5rem 1rem', color: 'var(--text3)' }}>
+//               <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🔍</div>
+//               <p style={{ fontFamily: 'var(--ff)', fontSize: '1.1rem' }}>No species match your filters.</p>
+//             </div>
+//           )}
+//         </>
+//       )}
+
+//       {/* Detail panel */}
+//       {selSpec && (
+//         <>
+//           <div
+//             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 199 }}
+//             onClick={() => dispatch({ type: 'SEL_SPECIES', v: null })}
+//           />
+//           <SpeciesDetailPanel
+//             species={selSpec}
+//             images={state.speciesImages}
+//             imagesLoading={state.speciesImagesLoading}
+//             imagesError={state.speciesImagesError}
+//             onClose={() => dispatch({ type: 'SEL_SPECIES', v: null })}
+//           />
+//         </>
+//       )}
+
+//       {/* Gallery lightbox */}
+//       {lightbox && (
+//         <div
+//           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.92)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}
+//           onClick={() => setLightbox(null)}
+//         >
+//           <button
+//             style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(255,255,255,.12)', border: 'none', color: '#fff', fontSize: '1.4rem', width: 40, height: 40, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+//             onClick={() => setLightbox(null)}
+//           >✕</button>
+//           <img
+//             src={lightbox.url}
+//             alt={lightbox.caption}
+//             style={{ maxWidth: '90vw', maxHeight: '85vh', borderRadius: '12px', objectFit: 'contain', boxShadow: '0 8px 64px rgba(0,0,0,.8)', animation: 'fadeIn .2s ease' }}
+//             onClick={e => e.stopPropagation()}
+//           />
+//           {lightbox.caption && (
+//             <div style={{ position: 'absolute', bottom: '1.5rem', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,.7)', color: '#ccc', padding: '.5rem 1.2rem', borderRadius: '20px', fontSize: '.75rem', textAlign: 'center', maxWidth: '80vw', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+//               <div style={{ fontWeight: 600, marginBottom: '.2rem' }}>{lightbox.species}</div>
+//               {lightbox.caption}
+//             </div>
+//           )}
+//         </div>
+//       )}
+
+//       {/* Filter modal */}
+//       {filterOpen && (
+//         <div className="modal-bg" onClick={() => setFilterOpen(false)}>
+//           <div className="modal" onClick={e => e.stopPropagation()}>
+//             <CloseBtn onClick={() => setFilterOpen(false)} />
+//             <h2 style={{ fontFamily: 'var(--ff)', fontSize: '1.5rem', color: 'var(--text)', marginBottom: '1rem' }}>Filter Species</h2>
+//             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+//               <button
+//                 onClick={() => {
+//                   dispatch({ type: 'SEL_CAT', v: null });
+//                   dispatch({ type: 'SEL_SUBCAT', v: 'all' });
+//                   dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                   setFilterOpen(false);
+//                 }}
+//                 style={{ background: !state.selectedCategory ? 'rgba(82,201,123,.2)' : 'var(--greenGlow)', border: '1px solid var(--border)', color: 'var(--text)', padding: '.75rem 1rem', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--fb)' }}
+//               >
+//                 All Families
+//               </button>
+//               {state.categories.map(cat => (
+//                 <div key={cat.id}>
+//                   <button
+//                     onClick={() => {
+//                       dispatch({ type: 'SEL_CAT', v: cat });
+//                       dispatch({ type: 'SEL_SUBCAT', v: 'all' });
+//                       dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                       setFilterOpen(false);
+//                     }}
+//                     style={{ background: state.selectedCategory?.id === cat.id ? 'rgba(82,201,123,.2)' : 'var(--greenGlow)', border: '1px solid var(--border)', color: 'var(--text)', padding: '.75rem 1rem', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--fb)', width: '100%' }}
+//                   >
+//                     {cat.name} ({cat.count})
+//                   </button>
+//                   {state.selectedCategory?.id === cat.id && cat.subcategories && Array.isArray(cat.subcategories) && cat.subcategories.map(sub => (
+//                     <button
+//                       key={sub}
+//                       onClick={() => {
+//                         dispatch({ type: 'SEL_SUBCAT', v: sub });
+//                         dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                         setFilterOpen(false);
+//                       }}
+//                       style={{ background: state.selectedSubcat === sub ? 'rgba(82,201,123,.2)' : 'var(--greenGlow)', border: '1px solid var(--border)', color: 'var(--text)', padding: '.5rem 2rem', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--fb)', width: '100%', marginTop: '.25rem' }}
+//                     >
+//                       {sub}
+//                     </button>
+//                   ))}
+//                 </div>
+//               ))}
+//             </div>
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
+
+
+
+
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import Loader from '../components/shared/Loader';
 import IndiaMap from '../components/map/IndiaMap';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CLOSE BUTTON
-// ─────────────────────────────────────────────────────────────────────────────
 function CloseBtn({ onClick }) {
   return (
     <button
@@ -27,9 +966,6 @@ function CloseBtn({ onClick }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SPECIES DETAIL PANEL
-// ─────────────────────────────────────────────────────────────────────────────
 function SpeciesDetailPanel({ species, images, imagesLoading, imagesError, onClose }) {
   return (
     <div style={{
@@ -40,7 +976,6 @@ function SpeciesDetailPanel({ species, images, imagesLoading, imagesError, onClo
       boxShadow: '-8px 0 40px rgba(0,0,0,.45)',
       animation: 'slideInRight .28s cubic-bezier(.4,0,.2,1)',
     }}>
-      {/* Header */}
       <div style={{
         padding: '1.5rem 1.5rem 1rem',
         borderBottom: '1px solid var(--border)',
@@ -63,7 +998,6 @@ function SpeciesDetailPanel({ species, images, imagesLoading, imagesError, onClo
         </div>
       </div>
 
-      {/* Body */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
         <div style={{ margin: '0 1.5rem 1rem', background: 'var(--bg3, #1a1a1a)', borderRadius: 10, border: '1px solid var(--border)', padding: '1rem' }}>
           <p style={{ fontSize: '.82rem', color: 'var(--text2)', lineHeight: 1.65 }}>{species.description}</p>
@@ -88,9 +1022,6 @@ function SpeciesDetailPanel({ species, images, imagesLoading, imagesError, onClo
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SPECIES CARD
-// ─────────────────────────────────────────────────────────────────────────────
 function SpeciesCard({ s, isSelected, onClick }) {
   return (
     <div
@@ -98,7 +1029,6 @@ function SpeciesCard({ s, isSelected, onClick }) {
       style={{ padding: 0, cursor: 'pointer', overflow: 'hidden', outline: isSelected ? '2px solid #52c97b' : 'none' }}
       onClick={onClick}
     >
-      {/* Thumbnail */}
       <div style={{ width: '100%', height: 160, background: `${s.color}14`, position: 'relative', overflow: 'hidden' }}>
         {s.imageUrl && s.imageUrl.trim() !== '' ? (
           <img
@@ -111,7 +1041,6 @@ function SpeciesCard({ s, isSelected, onClick }) {
             }}
           />
         ) : null}
-        {/* Fallback */}
         <div style={{
           display: (s.imageUrl && s.imageUrl.trim() !== '') ? 'none' : 'flex',
           position: 'absolute', inset: 0,
@@ -125,7 +1054,6 @@ function SpeciesCard({ s, isSelected, onClick }) {
         )}
       </div>
 
-      {/* Card body */}
       <div style={{ padding: '1rem' }}>
         <div style={{ fontFamily: 'var(--ff)', fontSize: '1.05rem', color: 'var(--text)', marginBottom: '.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {s.name}
@@ -151,9 +1079,6 @@ function SpeciesCard({ s, isSelected, onClick }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FAMILIES LOADING SKELETON
-// ─────────────────────────────────────────────────────────────────────────────
 function FamiliesLoader({ loaded, total }) {
   const families = [
     { name: 'Papilionidae', color: '#f59e0b' },
@@ -222,9 +1147,6 @@ function FamiliesLoader({ loaded, total }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SPECIES PAGE
-// ─────────────────────────────────────────────────────────────────────────────
 export default function SpeciesPage() {
   const { state, dispatch, filteredSpecies } = useApp();
   const [view, setView]             = useState('grid');
@@ -238,16 +1160,31 @@ export default function SpeciesPage() {
   const isLoading   = state.familiesLoadingCount > 0;
   const loadedCount = 6 - state.familiesLoadingCount;
 
+  // ── Resolve species pool ───────────────────────────────────────────────────
+  // Species can live in `cat.species` (flat array) OR
+  // `cat.subcategories` (object whose values are species arrays). Check both.
+  const resolveCatSpecies = (cat) => {
+    if (!cat) return [];
+    if (Array.isArray(cat.species) && cat.species.length > 0) return cat.species;
+    if (typeof cat.subcategories === 'object' && !Array.isArray(cat.subcategories)) {
+      return Object.values(cat.subcategories).flat();
+    }
+    return [];
+  };
+
+  const allCatSpecies = resolveCatSpecies(selCat);
+
   const displaySpecies = state.selectedSpeciesFilter
     ? [state.selectedSpeciesFilter]
     : selCat
-    ? selCat.species.filter(s =>
-        state.selectedSubcat === 'all' ||
-        (s.path ? s.path.includes(state.selectedSubcat) : s.subcategory === state.selectedSubcat)
-      )
-    : (state.search && state.search.length >= 2
-        ? filteredSpecies
-        : cats.flatMap(c => c.species));
+    ? allCatSpecies.filter(s => {
+        if (state.selectedSubcat === 'all') return true;
+        if (Array.isArray(s.path)) return s.path.includes(state.selectedSubcat);
+        return s.subcategory === state.selectedSubcat;
+      })
+    : state.search && state.search.length >= 2
+    ? filteredSpecies
+    : cats.flatMap(c => resolveCatSpecies(c));
 
   return (
     <div style={{ padding: '7rem 0 4rem 0', maxWidth: '100%' }}>
@@ -260,10 +1197,9 @@ export default function SpeciesPage() {
       {/* Toolbar */}
       <div style={{ display: 'flex', gap: '.75rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
 
-        {/* ── Breadcrumb ── */}
+        {/* Breadcrumb */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem', fontSize: '.78rem', color: 'var(--text2)', flexWrap: 'wrap' }}>
 
-          {/* All Families */}
           <span
             style={{ cursor: selCat || state.selectedSpeciesFilter ? 'pointer' : 'default', color: !selCat && !state.selectedSpeciesFilter ? '#52c97b' : 'var(--text3)' }}
             onClick={() => {
@@ -274,14 +1210,15 @@ export default function SpeciesPage() {
             All Families
           </span>
 
-          {/* Family level */}
           {selCat && (
             <>
               <span style={{ color: 'var(--text3)' }}>›</span>
               <span
                 style={{
-                  color: state.selectedSubcatPath.length > 0 || state.selectedSpeciesFilter ? 'var(--text3)' : '#52c97b',
-                  cursor: state.selectedSubcatPath.length > 0 || state.selectedSpeciesFilter ? 'pointer' : 'default',
+                  color: (state.selectedSubcatPath && state.selectedSubcatPath.length > 0) || state.selectedSpeciesFilter
+                    ? 'var(--text3)' : '#52c97b',
+                  cursor: (state.selectedSubcatPath && state.selectedSubcatPath.length > 0) || state.selectedSpeciesFilter
+                    ? 'pointer' : 'default',
                 }}
                 onClick={() => {
                   dispatch({ type: 'SEL_SUBCAT', v: 'all' });
@@ -293,8 +1230,7 @@ export default function SpeciesPage() {
             </>
           )}
 
-          {/* All intermediate nested levels */}
-          {selCat && state.selectedSubcatPath.map((crumb, i) => {
+          {selCat && (state.selectedSubcatPath || []).map((crumb, i) => {
             const isLast   = i === state.selectedSubcatPath.length - 1;
             const isActive = isLast && !state.selectedSpeciesFilter;
             return (
@@ -316,7 +1252,6 @@ export default function SpeciesPage() {
             );
           })}
 
-          {/* Species filter level */}
           {state.selectedSpeciesFilter && (
             <>
               <span style={{ color: 'var(--text3)' }}>›</span>
@@ -443,19 +1378,23 @@ export default function SpeciesPage() {
                   >
                     {cat.name} ({cat.count})
                   </button>
-                  {state.selectedCategory?.id === cat.id && cat.subcategories.map(sub => (
-                    <button
-                      key={sub}
-                      onClick={() => {
-                        dispatch({ type: 'SEL_SUBCAT', v: sub });
-                        dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
-                        setFilterOpen(false);
-                      }}
-                      style={{ background: state.selectedSubcat === sub ? 'rgba(82,201,123,.2)' : 'var(--greenGlow)', border: '1px solid var(--border)', color: 'var(--text)', padding: '.5rem 2rem', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--fb)', width: '100%', marginTop: '.25rem' }}
-                    >
-                      {sub}
-                    </button>
-                  ))}
+                  {state.selectedCategory?.id === cat.id &&
+                    cat.subcategories &&
+                    Array.isArray(cat.subcategories) &&
+                    cat.subcategories.map(sub => (
+                      <button
+                        key={sub}
+                        onClick={() => {
+                          dispatch({ type: 'SEL_SUBCAT', v: sub });
+                          dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+                          setFilterOpen(false);
+                        }}
+                        style={{ background: state.selectedSubcat === sub ? 'rgba(82,201,123,.2)' : 'var(--greenGlow)', border: '1px solid var(--border)', color: 'var(--text)', padding: '.5rem 2rem', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--fb)', width: '100%', marginTop: '.25rem' }}
+                      >
+                        {sub}
+                      </button>
+                    ))
+                  }
                 </div>
               ))}
             </div>

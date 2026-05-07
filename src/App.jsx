@@ -155,35 +155,70 @@ function TaxonTree() {
                   </div>
                   {exp && (
                     <div style={LS}>
-                      {cat.subcategories.map(sub => {
-                        const sid    = `${cat.id}-${sub}`;
-                        const subExp = state.taxonExpanded[sid];
-                        const subSp  = cat.species.filter(s => s.subcategory === sub);
-                        return (
-                          <div key={sub}>
-                            <div className="tree-item" onClick={() => dispatch({type:"TAXON_TOGGLE",id:sid})}>
-                              <span style={{flex:1,color:"var(--text2)",fontSize:".84rem"}}>{sub} <span style={{color:"var(--text3)",fontSize:".76rem"}}>{subSp.length}</span></span>
-                              {subSp.length > 0 && <span style={{color:"var(--green)",transform:subExp?"rotate(90deg)":"none",transition:"transform .2s",fontSize:".85rem"}}>›</span>}
-                            </div>
-                            {subExp && (
-                              <div style={LS}>
-                                {subSp.length === 0
-                                  ? <div style={{padding:".35rem .5rem",fontSize:".8rem",color:"var(--text3)"}}>No species listed</div>
-                                  : subSp.map(s => (
-                                    <div key={s.id} className="tree-item" onClick={() => dispatch({type:"SEL_SPECIES",v:s})} style={{gap:".4rem"}}>
-                                      <span style={{fontSize:".75rem"}}>🦋</span>
-                                      <div>
-                                        <div style={{color:"var(--text)",fontSize:".82rem"}}>{s.name}</div>
-                                        <div style={{color:"var(--text3)",fontSize:".72rem",fontStyle:"italic"}}>{s.scientific}</div>
-                                      </div>
-                                    </div>
-                                  ))
-                                }
+                      {(() => {
+                        // Handle both old array format and new object format
+                        if (typeof cat.subcategories === 'object' && !Array.isArray(cat.subcategories)) {
+                          return Object.entries(cat.subcategories).map(([sub, species]) => {
+                            const sid    = `${cat.id}-${sub}`;
+                            const subExp = state.taxonExpanded[sid];
+                            const subSp  = species || [];
+                            return (
+                              <div key={sub}>
+                                <div className="tree-item" onClick={() => dispatch({type:"TAXON_TOGGLE",id:sid})}>
+                                  <span style={{flex:1,color:"var(--text2)",fontSize:".84rem"}}>{sub} <span style={{color:"var(--text3)",fontSize:".76rem"}}>{subSp.length}</span></span>
+                                  {subSp.length > 0 && <span style={{color:"var(--green)",transform:subExp?"rotate(90deg)":"none",transition:"transform .2s",fontSize:".85rem"}}>›</span>}
+                                </div>
+                                {subExp && (
+                                  <div style={LS}>
+                                    {subSp.length === 0
+                                      ? <div style={{padding:".35rem .5rem",fontSize:".8rem",color:"var(--text3)"}}>No species listed</div>
+                                      : subSp.map(s => (
+                                        <div key={s.id} className="tree-item" onClick={() => dispatch({type:"SEL_SPECIES",v:s})} style={{gap:".4rem"}}>
+                                          <span style={{fontSize:".75rem"}}>🦋</span>
+                                          <div>
+                                            <div style={{color:"var(--text)",fontSize:".82rem"}}>{s.name}</div>
+                                            <div style={{color:"var(--text3)",fontSize:".72rem",fontStyle:"italic"}}>{s.scientific}</div>
+                                          </div>
+                                        </div>
+                                      ))
+                                    }
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                            );
+                          });
+                        }
+                        // Fallback for old array format
+                        return cat.subcategories.map(sub => {
+                          const sid    = `${cat.id}-${sub}`;
+                          const subExp = state.taxonExpanded[sid];
+                          const subSp  = cat.species.filter(s => s.subcategory === sub);
+                          return (
+                            <div key={sub}>
+                              <div className="tree-item" onClick={() => dispatch({type:"TAXON_TOGGLE",id:sid})}>
+                                <span style={{flex:1,color:"var(--text2)",fontSize:".84rem"}}>{sub} <span style={{color:"var(--text3)",fontSize:".76rem"}}>{subSp.length}</span></span>
+                                {subSp.length > 0 && <span style={{color:"var(--green)",transform:subExp?"rotate(90deg)":"none",transition:"transform .2s",fontSize:".85rem"}}>›</span>}
+                              </div>
+                              {subExp && (
+                                <div style={LS}>
+                                  {subSp.length === 0
+                                    ? <div style={{padding:".35rem .5rem",fontSize:".8rem",color:"var(--text3)"}}>No species listed</div>
+                                    : subSp.map(s => (
+                                      <div key={s.id} className="tree-item" onClick={() => dispatch({type:"SEL_SPECIES",v:s})} style={{gap:".4rem"}}>
+                                        <span style={{fontSize:".75rem"}}>🦋</span>
+                                        <div>
+                                          <div style={{color:"var(--text)",fontSize:".82rem"}}>{s.name}</div>
+                                          <div style={{color:"var(--text3)",fontSize:".72rem",fontStyle:"italic"}}>{s.scientific}</div>
+                                        </div>
+                                      </div>
+                                    ))
+                                  }
+                                </div>
+                              )}
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
                   )}
                 </div>
@@ -202,7 +237,12 @@ function TaxonTree() {
                   <div style={{flex:1}}>
                     <div style={{fontFamily:"var(--ff)",fontSize:"1rem",color:"var(--text)"}}>{cat.name} <span style={{fontStyle:"italic",color:"var(--text3)",fontSize:".85rem"}}>({cat.common})</span></div>
                     <div style={{display:"flex",gap:".35rem",marginTop:".3rem",flexWrap:"wrap"}}>
-                      {cat.subcategories.map(s => <span key={s} className="tag t-blue" style={{fontSize:".62rem"}}>{s}</span>)}
+                      {(() => {
+                        if (typeof cat.subcategories === 'object' && !Array.isArray(cat.subcategories)) {
+                          return Object.keys(cat.subcategories).map(s => <span key={s} className="tag t-blue" style={{fontSize:".62rem"}}>{s}</span>);
+                        }
+                        return cat.subcategories.map(s => <span key={s} className="tag t-blue" style={{fontSize:".62rem"}}>{s}</span>);
+                      })()}
                     </div>
                   </div>
                   <div style={{textAlign:"right",flexShrink:0}}>
