@@ -1155,12 +1155,2501 @@
 // }
 
 
+// import { useState } from 'react';
+// import { useApp } from '../../context/AppContext';
+
+// // ─── Helpers ───────────────────────────────────────────────────────────────────
+
+// /** A leaf is a species / subspecies: has no further expandable children */
+// function isLeafNode(node) {
+//   return (
+//     node.type === 'files' ||
+//     (Array.isArray(node.files) && node.files.length > 0) ||
+//     !Array.isArray(node.children) ||
+//     node.children.length === 0
+//   );
+// }
+
+// function formatLabel(category = '') {
+//   return category.replace(/_/g, ' ');
+// }
+
+// /**
+//  * Count how many species with images exist in this node's subtree
+//  * Only counts nodes that have files (actual images from API)
+//  */
+// function countSpeciesWithImages(node) {
+//   if (!node) return 0;
+
+//   // If this node has files (images), it counts as 1 species
+//   if (Array.isArray(node.files) && node.files.length > 0) {
+//     console.log(`  📄 [FILES FOUND] ${node.category}: ${node.files.length} image(s)`);
+//     return 1;
+//   }
+
+//   // If no children, this node contributes 0
+//   if (!Array.isArray(node.children) || node.children.length === 0) {
+//     console.log(`  ⚫ [LEAF - NO FILES] ${node.category}`);
+//     return 0;
+//   }
+
+//   // Sum up images from all children recursively
+//   const count = node.children.reduce((sum, child) => sum + countSpeciesWithImages(child), 0);
+  
+//   // Debug: log nodes with 0 images
+//   if (count === 0) {
+//     console.warn(`  ⚠️  [EMPTY BRANCH] ${node.category} has 0 species with images`);
+//   } else {
+//     console.log(`  ✓ [BRANCH] ${node.category}: ${count} species with images`);
+//   }
+  
+//   return count;
+// }
+
+// /**
+//  * Filter children to only show those with at least 1 species with images
+//  * This prevents showing empty branches in the sidebar
+//  */
+// function filterChildrenWithImages(children) {
+//   if (!Array.isArray(children)) return [];
+  
+//   console.log(`\n🔍 Filtering ${children.length} children...`);
+//   const filtered = children.filter(child => {
+//     const count = countSpeciesWithImages(child);
+//     if (count === 0) {
+//       console.log(`  🚫 FILTERING OUT: ${child.category} (0 images)`);
+//     } else {
+//       console.log(`  ✅ KEEPING: ${child.category} (${count} images)`);
+//     }
+//     return count > 0;
+//   });
+  
+//   console.log(`📊 Filtered ${children.length} children → ${filtered.length} with images\n`);
+//   return filtered;
+// }
+
+// // Per-depth visual config: indent (rem), font-size
+// const DEPTH_CONFIG = [
+//   { indent: 0.75, fs: '0.88rem' },   // 0 – genus
+//   { indent: 1.80, fs: '0.84rem' },   // 1 – species
+//   { indent: 2.85, fs: '0.80rem' },   // 2 – subspecies
+//   { indent: 3.70, fs: '0.76rem' },   // 3+
+// ];
+// const dc = (depth) => DEPTH_CONFIG[Math.min(depth, DEPTH_CONFIG.length - 1)];
+
+// // ─── Recursive tree node ───────────────────────────────────────────────────────
+
+// function TaxonNode({ node, depth, cat, ancestorPath }) {
+//   const { state, dispatch } = useApp();
+
+//   // Leaves start collapsed; top-level genus nodes start expanded
+//   const [expanded, setExpanded] = useState(depth === 0);
+
+//   const label  = formatLabel(node.category);
+//   const isLeaf = isLeafNode(node);
+
+//   // ── Filter out leaf nodes with 0 images ────────────────────────────────────
+//   // This prevents "Byasa dasarada dasarada" (and similar empty leaves) from showing
+//   const hasImages = countSpeciesWithImages(node);
+//   if (isLeaf && hasImages === 0) {
+//     console.log(`🚫 HIDING EMPTY LEAF: ${node.category}`);
+//     return null; // Don't render this node
+//   }
+  
+//   // Also hide parent nodes with 0 descendants that have images
+//   if (!isLeaf && hasImages === 0) {
+//     console.log(`🚫 HIDING EMPTY BRANCH: ${node.category}`);
+//     return null; // Don't render this node
+//   }
+
+//   // Build the full breadcrumb path up to this node
+//   const fullPath = [...ancestorPath, { category: node.category, label }];
+
+//   // ── Active-state logic ────────────────────────────────────────────────────
+//   const activePath   = state.selectedSubcatPath || [];
+//   const inActivePath = activePath.some(c => c.category === node.category);
+
+//   // A leaf is "fully active" when the species filter is set to it
+//   const isActiveLeaf = !!state.selectedSpeciesFilter?.path?.includes(node.category);
+
+//   // A non-leaf is "fully active" when it's the current subcat AND no species filter overrides it
+//   const isActiveNonLeaf = state.selectedSubcat === node.category && !state.selectedSpeciesFilter;
+
+//   const isFullyActive  = isActiveLeaf || isActiveNonLeaf;
+//   const isAncestorHit  = inActivePath && !isFullyActive;
+
+//   // ── Colours ───────────────────────────────────────────────────────────────
+//   const color  = isFullyActive ? '#52c97b' : isAncestorHit ? '#3a9960' : 'var(--text3)';
+//   const bgColor = isFullyActive
+//     ? 'rgba(82,201,123,.13)'
+//     : isAncestorHit
+//     ? 'rgba(82,201,123,.05)'
+//     : 'transparent';
+//   const leftBorder = isFullyActive
+//     ? '2px solid rgba(82,201,123,.6)'
+//     : '2px solid transparent';
+
+//   // ── Click handler ─────────────────────────────────────────────────────────
+//   const handleClick = () => {
+//     // Make sure the right top-level family is selected
+//     if (state.selectedCategory?.id !== cat.id) {
+//       dispatch({ type: 'SEL_CAT', v: cat });
+//     }
+//     dispatch({ type: 'SET_PAGE', p: 'species' });
+
+//     if (isLeaf) {
+//       // Try to resolve the matching species object so SpeciesPage can show it
+//       const allSpecies =
+//         typeof cat.subcategories === 'object' && !Array.isArray(cat.subcategories)
+//           ? Object.values(cat.subcategories).flat()
+//           : cat.species || [];
+
+//       const matches = allSpecies.filter(s => Array.isArray(s.path) && s.path.includes(node.category));
+
+//       // Always push the full path so breadcrumbs stay correct
+//       dispatch({ type: 'SEL_SUBCAT_PATH', category: node.category, path: fullPath });
+
+//       if (matches.length === 1) {
+//         // Exactly one species with images → select it directly
+//         console.log(`✅ SELECTING SPECIES: ${matches[0].name} (has ${matches[0]._images?.length || 0} images)`);
+//         dispatch({ type: 'SEL_SPECIES_FILTER', v: matches[0] });
+//       } else if (matches.length > 1) {
+//         // Multiple species with images share this path → clear filter, show all
+//         console.log(`📊 MULTIPLE SPECIES (${matches.length}) FOUND, showing all`);
+//         dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//       } else {
+//         // Zero matches (no species with images for this node) → clear filter
+//         console.log(`❌ NO SPECIES WITH IMAGES for ${node.category}`);
+//         dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//       }
+//     } else {
+//       // Non-leaf: toggle expand + navigate
+//       setExpanded(e => !e);
+//       dispatch({ type: 'SEL_SUBCAT_PATH', category: node.category, path: fullPath });
+//       // Clear any previous species filter so the grid shows all children
+//       dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//     }
+//   };
+
+//   const { indent, fs } = dc(depth);
+
+//   return (
+//     <div>
+//       <button
+//         onClick={handleClick}
+//         style={{
+//           width: '100%',
+//           display: 'flex',
+//           alignItems: 'center',
+//           gap: '0.35rem',
+//           padding: `0.28rem 0.75rem 0.28rem ${indent}rem`,
+//           background: bgColor,
+//           border: 'none',
+//           borderLeft: leftBorder,
+//           cursor: 'pointer',
+//           color,
+//           fontSize: fs,
+//           fontWeight: isFullyActive ? 600 : isAncestorHit ? 500 : 400,
+//           textAlign: 'left',
+//           lineHeight: 1.45,
+//           transition: 'background 0.12s, color 0.12s',
+//           /* mirror the app's sidebar-sublink reset so hover still works */
+//           fontFamily: 'inherit',
+//         }}
+//       >
+//         {/* Expand / leaf indicator */}
+//         <span style={{
+//           flexShrink: 0,
+//           width: '0.7rem',
+//           textAlign: 'center',
+//           fontSize: '0.62rem',
+//           color: isFullyActive || isAncestorHit ? color : 'var(--border)',
+//           transition: 'color 0.12s',
+//         }}>
+//           {isLeaf ? '◆' : expanded ? '▾' : '▸'}
+//         </span>
+
+//         {/* Label */}
+//         <span style={{
+//           flex: 1,
+//           overflow: 'hidden',
+//           textOverflow: 'ellipsis',
+//           whiteSpace: 'nowrap',
+//           fontStyle: isLeaf ? 'italic' : 'normal',
+//         }}>
+//           {label}
+//         </span>
+
+//         {/* Count badge (non-leaf, depth 0 only to avoid clutter) */}
+//         {!isLeaf && depth === 0 && node.count > 0 && (
+//           <span style={{
+//             flexShrink: 0,
+//             fontSize: '0.6rem',
+//             color: 'var(--text3)',
+//             background: 'var(--bg3)',
+//             padding: '0.1rem 0.35rem',
+//             borderRadius: 4,
+//           }}>
+//             {node.count}
+//           </span>
+//         )}
+//       </button>
+
+//       {/* Children */}
+//       {!isLeaf && expanded && Array.isArray(node.children) && node.children.length > 0 && (
+//         <div style={{
+//           borderLeft: `1px solid ${isFullyActive || isAncestorHit ? 'rgba(82,201,123,.22)' : 'var(--border)'}`,
+//           marginLeft: `${indent + 0.15}rem`,
+//         }}>
+//           {filterChildrenWithImages(node.children).map(child => (
+//             <TaxonNode
+//               key={child.category}
+//               node={child}
+//               depth={depth + 1}
+//               cat={cat}
+//               ancestorPath={fullPath}
+//             />
+//           ))}
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
+// // ─── Flat-subcategory species list (fallback when no taxonomyTree) ─────────────
+
+// function FlatSubcatList({ cat }) {
+//   const { state, dispatch } = useApp();
+
+//   return (
+//     <div className="sidebar-subcats">
+//       {Object.entries(cat.subcategories).map(([sub, species]) => {
+//         const isOpen = state.selectedSubcat === sub;
+
+//         return (
+//           <div key={sub}>
+//             {/* Subcategory row */}
+//             <button
+//               onClick={() => {
+//                 dispatch({ type: 'SEL_SUBCAT', v: sub });
+//                 dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                 dispatch({ type: 'SET_PAGE', p: 'species' });
+//               }}
+//               className="sidebar-sublink"
+//               style={{
+//                 background: isOpen ? 'rgba(82,201,123,.08)' : 'transparent',
+//                 color:      isOpen ? '#52c97b' : 'var(--text3)',
+//                 fontWeight: isOpen ? 600 : 400,
+//               }}
+//             >
+//               <span style={{
+//                 width: 4, height: 4, borderRadius: '50%',
+//                 background: isOpen ? '#52c97b' : 'var(--border)',
+//                 display: 'inline-block', flexShrink: 0,
+//               }} />
+//               <span style={{ flex: 1 }}>{sub}</span>
+//               <span style={{ fontSize: '.6rem', color: 'var(--text3)', flexShrink: 0 }}>
+//                 {species.length}
+//               </span>
+//             </button>
+
+//             {/* Species under this subcategory */}
+//             {isOpen && species.length > 0 && (
+//               <div style={{
+//                 borderLeft: '1px solid var(--border)',
+//                 marginLeft: '0.9rem',
+//               }}>
+//                 {species.map(sp => {
+//                   const isSel = state.selectedSpeciesFilter?.id === sp.id;
+//                   return (
+//                     <button
+//                       key={sp.id}
+//                       onClick={() => {
+//                         dispatch({ type: 'SEL_SPECIES_FILTER', v: isSel ? null : sp });
+//                         dispatch({ type: 'SET_PAGE', p: 'species' });
+//                       }}
+//                       className="sidebar-sublink"
+//                       style={{
+//                         paddingLeft: '1.4rem',
+//                         background: isSel ? 'rgba(82,201,123,.08)' : 'transparent',
+//                         color:      isSel ? '#52c97b' : 'var(--text3)',
+//                         borderLeft: isSel ? '2px solid rgba(82,201,123,.5)' : '2px solid transparent',
+//                         fontSize: '.75rem',
+//                       }}
+//                     >
+//                       <span style={{ fontSize: '.5rem', flexShrink: 0 }}>◆</span>
+//                       <span style={{
+//                         flex: 1,
+//                         overflow: 'hidden',
+//                         textOverflow: 'ellipsis',
+//                         whiteSpace: 'nowrap',
+//                         fontStyle: 'italic',
+//                       }}>
+//                         {sp.name}
+//                       </span>
+//                     </button>
+//                   );
+//                 })}
+//               </div>
+//             )}
+//           </div>
+//         );
+//       })}
+//     </div>
+//   );
+// }
+
+// // ─── Sidebar ──────────────────────────────────────────────────────────────────
+
+// export default function Sidebar() {
+//   const { state, dispatch } = useApp();
+
+//   return (
+//     <aside className={`sidebar ${state.sidebarOpen ? 'open' : ''}`}>
+//       {/* Header */}
+//       <div className="sidebar-header">
+//         <div className="sidebar-subtitle">Browse By</div>
+//         <div className="sidebar-title">Butterfly Families</div>
+//         <button
+//           className="sidebar-close"
+//           onClick={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
+//         >
+//           ✕
+//         </button>
+//       </div>
+
+//       <nav className="sidebar-nav">
+//         {/* ── All Families ── */}
+//         <button
+//           onClick={() => {
+//             dispatch({ type: 'SEL_CAT',            v: null });
+//             dispatch({ type: 'SEL_SUBCAT',          v: 'all' });
+//             dispatch({ type: 'SEL_SPECIES_FILTER',  v: null });
+//             dispatch({ type: 'SET_PAGE',            p: 'species' });
+//           }}
+//           className="sidebar-link"
+//           style={{
+//             background:  !state.selectedCategory ? 'rgba(82,201,123,.12)' : 'transparent',
+//             borderLeft:  !state.selectedCategory ? '3px solid #52c97b' : '3px solid transparent',
+//             color:       !state.selectedCategory ? '#52c97b' : 'var(--text2)',
+//             fontWeight:  !state.selectedCategory ? 600 : 400,
+//           }}
+//         >
+//           All Families
+//         </button>
+
+//         {/* ── One block per family ── */}
+//         {state.categories.map(cat => {
+//           const isActive = state.selectedCategory?.id === cat.id;
+
+//           return (
+//             <div key={cat.id} className="sidebar-family">
+//               {/* Family heading row */}
+//               <button
+//                 onClick={() => {
+//                   dispatch({ type: 'SEL_CAT',           v: cat });
+//                   dispatch({ type: 'SEL_SUBCAT',         v: 'all' });
+//                   dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                   dispatch({ type: 'SET_PAGE',           p: 'species' });
+//                 }}
+//                 className="sidebar-link"
+//                 style={{
+//                   background: isActive && state.selectedSubcat === 'all' && !state.selectedSpeciesFilter
+//                     ? 'rgba(82,201,123,.12)'
+//                     : 'transparent',
+//                   borderLeft: isActive ? '3px solid #52c97b' : '3px solid transparent',
+//                   color:      isActive ? '#52c97b' : 'var(--text2)',
+//                   fontWeight: isActive ? 600 : 400,
+//                 }}
+//               >
+//                 <span>{cat.name}</span>
+//                 <span style={{ fontSize: '.7rem', color: 'var(--text3)', marginLeft: 'auto' }}>
+//                   {cat.count || 0}
+//                 </span>
+//               </button>
+
+//               {/* Loading spinner */}
+//               {isActive && cat.taxonomyLoading && (
+//                 <div style={{
+//                   padding: '0.5rem 1.2rem',
+//                   color: 'var(--text3)',
+//                   fontSize: '.73rem',
+//                   display: 'flex',
+//                   alignItems: 'center',
+//                   gap: '0.4rem',
+//                 }}>
+//                   <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⟳</span>
+//                   Loading taxonomy…
+//                 </div>
+//               )}
+
+//               {/* ── Taxonomy tree from API ── */}
+//               {isActive && cat.taxonomyTree && !cat.taxonomyLoading && (
+//                 <div className="sidebar-subcats" style={{ paddingBottom: '0.5rem' }}>
+//                   {filterChildrenWithImages(cat.taxonomyTree.children || []).map(child => (
+//                     <TaxonNode
+//                       key={child.category}
+//                       node={child}
+//                       depth={0}
+//                       cat={cat}
+//                       ancestorPath={[]}
+//                     />
+//                   ))}
+//                 </div>
+//               )}
+
+//               {/* ── Flat fallback (old object-based subcategories) ── */}
+//               {isActive && !cat.taxonomyTree && !cat.taxonomyLoading &&
+//                 cat.subcategories &&
+//                 typeof cat.subcategories === 'object' &&
+//                 !Array.isArray(cat.subcategories) && (
+//                 <FlatSubcatList cat={cat} />
+//               )}
+//             </div>
+//           );
+//         })}
+//       </nav>
+
+//       <div className="sidebar-footer">
+//         <div className="sidebar-divider" />
+//         <button className="sidebar-link">Settings ⚙️</button>
+//         <button className="sidebar-link">Help ❓</button>
+//       </div>
+//     </aside>
+//   );
+// }
+
+
+
+// import { useState } from 'react';
+// import { useApp } from '../../context/AppContext';
+
+// // ─── Helpers ───────────────────────────────────────────────────────────────────
+
+// function formatLabel(category = '') {
+//   return category.replace(/_/g, ' ');
+// }
+
+// /**
+//  * A node is a leaf (species/subspecies) when:
+//  *  - it carries files directly  →  actual images exist
+//  *  - OR it has no children array at all / empty children
+//  */
+// function isLeafNode(node) {
+//   return (
+//     node.type === 'files' ||
+//     (Array.isArray(node.files) && node.files.length > 0) ||
+//     !Array.isArray(node.children) ||
+//     node.children.length === 0
+//   );
+// }
+
+// /**
+//  * Recursively count how many leaf nodes with ≥1 image exist in this subtree.
+//  * Used to hide completely-empty branches.
+//  */
+// function countImagesInSubtree(node) {
+//   if (!node) return 0;
+//   if (Array.isArray(node.files) && node.files.length > 0) return node.files.length;
+//   if (!Array.isArray(node.children) || node.children.length === 0) return 0;
+//   return node.children.reduce((sum, c) => sum + countImagesInSubtree(c), 0);
+// }
+
+// /** Keep only children that contain at least one image somewhere in their subtree */
+// function childrenWithImages(children) {
+//   if (!Array.isArray(children)) return [];
+//   return children.filter(c => countImagesInSubtree(c) > 0);
+// }
+
+// // Per-depth visual config
+// const DEPTH_CONFIG = [
+//   { indent: 0.75, fs: '0.86rem' },   // 0 – subfamily / genus
+//   { indent: 1.70, fs: '0.82rem' },   // 1 – genus / species
+//   { indent: 2.65, fs: '0.78rem' },   // 2 – species / subspecies
+//   { indent: 3.50, fs: '0.74rem' },   // 3+
+// ];
+// const dc = (depth) => DEPTH_CONFIG[Math.min(depth, DEPTH_CONFIG.length - 1)];
+
+// // ─── Single recursive tree node ───────────────────────────────────────────────
+
+// function TaxonNode({ node, depth, cat, ancestorPath }) {
+//   const { state, dispatch } = useApp();
+//   const [expanded, setExpanded] = useState(depth === 0);
+
+//   const label  = formatLabel(node.category);
+//   const isLeaf = isLeafNode(node);
+
+//   // Skip nodes with no images anywhere in their subtree
+//   if (countImagesInSubtree(node) === 0) return null;
+
+//   // Build breadcrumb path up to this node
+//   const fullPath = [...ancestorPath, { category: node.category, label }];
+
+//   // ── Active-state logic ────────────────────────────────────────────────────
+//   const activePath     = state.selectedSubcatPath || [];
+//   const inActivePath   = activePath.some(c => c.category === node.category);
+//   const isActiveLeaf   = !!state.selectedSpeciesFilter?.path?.includes(node.category);
+//   const isActiveNonLeaf =
+//     state.selectedSubcat === node.category && !state.selectedSpeciesFilter;
+//   const isFullyActive  = isActiveLeaf || isActiveNonLeaf;
+//   const isAncestorHit  = inActivePath && !isFullyActive;
+
+//   const color      = isFullyActive ? '#52c97b' : isAncestorHit ? '#3a9960' : 'var(--text3)';
+//   const bgColor    = isFullyActive
+//     ? 'rgba(82,201,123,.13)'
+//     : isAncestorHit
+//     ? 'rgba(82,201,123,.05)'
+//     : 'transparent';
+//   const leftBorder = isFullyActive
+//     ? '2px solid rgba(82,201,123,.6)'
+//     : '2px solid transparent';
+
+//   // ── Click handler ─────────────────────────────────────────────────────────
+//   const handleClick = () => {
+//     if (state.selectedCategory?.id !== cat.id) {
+//       dispatch({ type: 'SEL_CAT', v: cat });
+//     }
+//     dispatch({ type: 'SET_PAGE', p: 'species' });
+//     dispatch({ type: 'SEL_SUBCAT_PATH', category: node.category, path: fullPath });
+
+//     if (isLeaf) {
+//       // Resolve matching species object from cat.species (flat list built by loadFamilyTaxonomy)
+//       const allSpecies = Array.isArray(cat.species)
+//         ? cat.species
+//         : typeof cat.subcategories === 'object' && !Array.isArray(cat.subcategories)
+//           ? Object.values(cat.subcategories).flat()
+//           : [];
+
+//       const matches = allSpecies.filter(
+//         s => Array.isArray(s.path) && s.path.includes(node.category)
+//       );
+
+//       if (matches.length === 1) {
+//         dispatch({ type: 'SEL_SPECIES_FILTER', v: matches[0] });
+//       } else {
+//         // Multiple or zero – show all under this path
+//         dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//       }
+//     } else {
+//       setExpanded(e => !e);
+//       dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//     }
+//   };
+
+//   const { indent, fs } = dc(depth);
+//   const imgCount = isLeaf
+//     ? (node.files?.length ?? 0)
+//     : countImagesInSubtree(node);
+
+//   return (
+//     <div>
+//       <button
+//         onClick={handleClick}
+//         style={{
+//           width: '100%',
+//           display: 'flex',
+//           alignItems: 'center',
+//           gap: '0.35rem',
+//           padding: `0.28rem 0.75rem 0.28rem ${indent}rem`,
+//           background: bgColor,
+//           border: 'none',
+//           borderLeft: leftBorder,
+//           cursor: 'pointer',
+//           color,
+//           fontSize: fs,
+//           fontWeight: isFullyActive ? 600 : isAncestorHit ? 500 : 400,
+//           textAlign: 'left',
+//           lineHeight: 1.45,
+//           transition: 'background 0.12s, color 0.12s',
+//           fontFamily: 'inherit',
+//         }}
+//       >
+//         {/* Expand / leaf indicator */}
+//         <span style={{
+//           flexShrink: 0,
+//           width: '0.7rem',
+//           textAlign: 'center',
+//           fontSize: '0.62rem',
+//           color: isFullyActive || isAncestorHit ? color : 'var(--border)',
+//           transition: 'color 0.12s',
+//         }}>
+//           {isLeaf ? '◆' : expanded ? '▾' : '▸'}
+//         </span>
+
+//         {/* Label */}
+//         <span style={{
+//           flex: 1,
+//           overflow: 'hidden',
+//           textOverflow: 'ellipsis',
+//           whiteSpace: 'nowrap',
+//           fontStyle: isLeaf ? 'italic' : 'normal',
+//         }}>
+//           {label}
+//         </span>
+
+//         {/* Image count badge */}
+//         {imgCount > 0 && (
+//           <span style={{
+//             flexShrink: 0,
+//             fontSize: '0.58rem',
+//             color: 'var(--text3)',
+//             background: 'var(--bg3)',
+//             padding: '0.1rem 0.32rem',
+//             borderRadius: 4,
+//             fontVariantNumeric: 'tabular-nums',
+//           }}>
+//             {imgCount}
+//           </span>
+//         )}
+//       </button>
+
+//       {/* Children – rendered only when expanded */}
+//       {!isLeaf && expanded && Array.isArray(node.children) && node.children.length > 0 && (
+//         <div style={{
+//           borderLeft: `1px solid ${
+//             isFullyActive || isAncestorHit
+//               ? 'rgba(82,201,123,.22)'
+//               : 'var(--border)'
+//           }`,
+//           marginLeft: `${indent + 0.15}rem`,
+//         }}>
+//           {childrenWithImages(node.children).map(child => (
+//             <TaxonNode
+//               key={child.category}
+//               node={child}
+//               depth={depth + 1}
+//               cat={cat}
+//               ancestorPath={fullPath}
+//             />
+//           ))}
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
+// // ─── Flat-subcategory fallback (when no taxonomyTree) ─────────────────────────
+
+// function FlatSubcatList({ cat }) {
+//   const { state, dispatch } = useApp();
+
+//   return (
+//     <div className="sidebar-subcats">
+//       {Object.entries(cat.subcategories).map(([sub, species]) => {
+//         const isOpen = state.selectedSubcat === sub;
+//         return (
+//           <div key={sub}>
+//             <button
+//               onClick={() => {
+//                 dispatch({ type: 'SEL_SUBCAT', v: sub });
+//                 dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                 dispatch({ type: 'SET_PAGE', p: 'species' });
+//               }}
+//               className="sidebar-sublink"
+//               style={{
+//                 background: isOpen ? 'rgba(82,201,123,.08)' : 'transparent',
+//                 color:      isOpen ? '#52c97b' : 'var(--text3)',
+//                 fontWeight: isOpen ? 600 : 400,
+//               }}
+//             >
+//               <span style={{
+//                 width: 4, height: 4, borderRadius: '50%',
+//                 background: isOpen ? '#52c97b' : 'var(--border)',
+//                 display: 'inline-block', flexShrink: 0,
+//               }} />
+//               <span style={{ flex: 1 }}>{sub}</span>
+//               <span style={{ fontSize: '.6rem', color: 'var(--text3)', flexShrink: 0 }}>
+//                 {species.length}
+//               </span>
+//             </button>
+
+//             {isOpen && species.length > 0 && (
+//               <div style={{ borderLeft: '1px solid var(--border)', marginLeft: '0.9rem' }}>
+//                 {species.map(sp => {
+//                   const isSel = state.selectedSpeciesFilter?.id === sp.id;
+//                   return (
+//                     <button
+//                       key={sp.id}
+//                       onClick={() => {
+//                         dispatch({ type: 'SEL_SPECIES_FILTER', v: isSel ? null : sp });
+//                         dispatch({ type: 'SET_PAGE', p: 'species' });
+//                       }}
+//                       className="sidebar-sublink"
+//                       style={{
+//                         paddingLeft: '1.4rem',
+//                         background: isSel ? 'rgba(82,201,123,.08)' : 'transparent',
+//                         color:      isSel ? '#52c97b' : 'var(--text3)',
+//                         borderLeft: isSel ? '2px solid rgba(82,201,123,.5)' : '2px solid transparent',
+//                         fontSize: '.75rem',
+//                       }}
+//                     >
+//                       <span style={{ fontSize: '.5rem', flexShrink: 0 }}>◆</span>
+//                       <span style={{
+//                         flex: 1, overflow: 'hidden',
+//                         textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+//                         fontStyle: 'italic',
+//                       }}>
+//                         {sp.name}
+//                       </span>
+//                     </button>
+//                   );
+//                 })}
+//               </div>
+//             )}
+//           </div>
+//         );
+//       })}
+//     </div>
+//   );
+// }
+
+// // ─── Sidebar root ──────────────────────────────────────────────────────────────
+
+// export default function Sidebar() {
+//   const { state, dispatch } = useApp();
+
+//   return (
+//     <aside className={`sidebar ${state.sidebarOpen ? 'open' : ''}`}>
+//       <div className="sidebar-header">
+//         <div className="sidebar-subtitle">Browse By</div>
+//         <div className="sidebar-title">Butterfly Families</div>
+//         <button
+//           className="sidebar-close"
+//           onClick={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
+//         >✕</button>
+//       </div>
+
+//       <nav className="sidebar-nav">
+//         {/* All Families */}
+//         <button
+//           onClick={() => {
+//             dispatch({ type: 'SEL_CAT',           v: null });
+//             dispatch({ type: 'SEL_SUBCAT',         v: 'all' });
+//             dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//             dispatch({ type: 'SET_PAGE',           p: 'species' });
+//           }}
+//           className="sidebar-link"
+//           style={{
+//             background: !state.selectedCategory ? 'rgba(82,201,123,.12)' : 'transparent',
+//             borderLeft: !state.selectedCategory ? '3px solid #52c97b' : '3px solid transparent',
+//             color:      !state.selectedCategory ? '#52c97b' : 'var(--text2)',
+//             fontWeight: !state.selectedCategory ? 600 : 400,
+//           }}
+//         >
+//           All Families
+//         </button>
+
+//         {/* One block per family */}
+//         {state.categories.map(cat => {
+//           const isActive = state.selectedCategory?.id === cat.id;
+
+//           return (
+//             <div key={cat.id} className="sidebar-family">
+//               {/* Family heading */}
+//               <button
+//                 onClick={() => {
+//                   dispatch({ type: 'SEL_CAT',           v: cat });
+//                   dispatch({ type: 'SEL_SUBCAT',         v: 'all' });
+//                   dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                   dispatch({ type: 'SET_PAGE',           p: 'species' });
+//                 }}
+//                 className="sidebar-link"
+//                 style={{
+//                   background: isActive && state.selectedSubcat === 'all' && !state.selectedSpeciesFilter
+//                     ? 'rgba(82,201,123,.12)' : 'transparent',
+//                   borderLeft: isActive ? '3px solid #52c97b' : '3px solid transparent',
+//                   color:      isActive ? '#52c97b' : 'var(--text2)',
+//                   fontWeight: isActive ? 600 : 400,
+//                 }}
+//               >
+//                 <span>{cat.name}</span>
+//                 <span style={{ fontSize: '.7rem', color: 'var(--text3)', marginLeft: 'auto' }}>
+//                   {cat.count || 0}
+//                 </span>
+//               </button>
+
+//               {/* Loading spinner */}
+//               {isActive && cat.taxonomyLoading && (
+//                 <div style={{
+//                   padding: '0.5rem 1.2rem', color: 'var(--text3)',
+//                   fontSize: '.73rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
+//                 }}>
+//                   <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⟳</span>
+//                   Loading taxonomy…
+//                 </div>
+//               )}
+
+//               {/* ── Taxonomy tree from API (primary path) ── */}
+//               {isActive && cat.taxonomyTree && !cat.taxonomyLoading && (
+//                 <div className="sidebar-subcats" style={{ paddingBottom: '0.5rem' }}>
+//                   {childrenWithImages(cat.taxonomyTree.children || []).map(child => (
+//                     <TaxonNode
+//                       key={child.category}
+//                       node={child}
+//                       depth={0}
+//                       cat={cat}
+//                       ancestorPath={[]}
+//                     />
+//                   ))}
+//                 </div>
+//               )}
+
+//               {/* ── Flat fallback ── */}
+//               {isActive && !cat.taxonomyTree && !cat.taxonomyLoading &&
+//                 cat.subcategories &&
+//                 typeof cat.subcategories === 'object' &&
+//                 !Array.isArray(cat.subcategories) && (
+//                 <FlatSubcatList cat={cat} />
+//               )}
+//             </div>
+//           );
+//         })}
+//       </nav>
+
+//       <div className="sidebar-footer">
+//         <div className="sidebar-divider" />
+//         <button className="sidebar-link">Settings ⚙️</button>
+//         <button className="sidebar-link">Help ❓</button>
+//       </div>
+//     </aside>
+//   );
+// }
+
+
+// import { useState } from 'react';
+// import { useApp } from '../../context/AppContext';
+
+// // ─── Helpers ───────────────────────────────────────────────────────────────────
+
+// function formatLabel(category = '') {
+//   return category.replace(/_/g, ' ');
+// }
+
+// /**
+//  * A node is a leaf (species/subspecies) when:
+//  *  - it carries files directly  →  actual images exist
+//  *  - OR it has no children array at all / empty children
+//  */
+// function isLeafNode(node) {
+//   return (
+//     node.type === 'files' ||
+//     (Array.isArray(node.files) && node.files.length > 0) ||
+//     !Array.isArray(node.children) ||
+//     node.children.length === 0
+//   );
+// }
+
+// /**
+//  * Recursively count how many leaf nodes with ≥1 image exist in this subtree.
+//  * Used to hide completely-empty branches.
+//  */
+// function countImagesInSubtree(node) {
+//   if (!node) return 0;
+//   if (Array.isArray(node.files) && node.files.length > 0) return node.files.length;
+//   if (!Array.isArray(node.children) || node.children.length === 0) return 0;
+//   return node.children.reduce((sum, c) => sum + countImagesInSubtree(c), 0);
+// }
+
+// /** Keep only children that contain at least one image somewhere in their subtree */
+// function childrenWithImages(children) {
+//   if (!Array.isArray(children)) return [];
+//   return children.filter(c => countImagesInSubtree(c) > 0);
+// }
+
+// // Per-depth visual config
+// const DEPTH_CONFIG = [
+//   { indent: 0.75, fs: '0.86rem' },   // 0 – subfamily / genus
+//   { indent: 1.70, fs: '0.82rem' },   // 1 – genus / species
+//   { indent: 2.65, fs: '0.78rem' },   // 2 – species / subspecies
+//   { indent: 3.50, fs: '0.74rem' },   // 3+
+// ];
+// const dc = (depth) => DEPTH_CONFIG[Math.min(depth, DEPTH_CONFIG.length - 1)];
+
+// // ─── Single recursive tree node ───────────────────────────────────────────────
+
+// function TaxonNode({ node, depth, cat, ancestorPath }) {
+//   const { state, dispatch } = useApp();
+//   const [expanded, setExpanded] = useState(depth === 0);
+
+//   const label  = formatLabel(node.category);
+//   const isLeaf = isLeafNode(node);
+
+//   // Skip nodes with no images anywhere in their subtree
+//   if (countImagesInSubtree(node) === 0) return null;
+
+//   // Build breadcrumb path up to this node
+//   const fullPath = [...ancestorPath, { category: node.category, label }];
+
+//   // ── Active-state logic ────────────────────────────────────────────────────
+//   const activePath     = state.selectedSubcatPath || [];
+//   const inActivePath   = activePath.some(c => c.category === node.category);
+//   const isActiveLeaf   = !!state.selectedSpeciesFilter?.path?.includes(node.category);
+//   const isActiveNonLeaf =
+//     state.selectedSubcat === node.category && !state.selectedSpeciesFilter;
+//   const isFullyActive  = isActiveLeaf || isActiveNonLeaf;
+//   const isAncestorHit  = inActivePath && !isFullyActive;
+
+//   const color      = isFullyActive ? '#52c97b' : isAncestorHit ? '#3a9960' : 'var(--text3)';
+//   const bgColor    = isFullyActive
+//     ? 'rgba(82,201,123,.13)'
+//     : isAncestorHit
+//     ? 'rgba(82,201,123,.05)'
+//     : 'transparent';
+//   const leftBorder = isFullyActive
+//     ? '2px solid rgba(82,201,123,.6)'
+//     : '2px solid transparent';
+
+//   // ── Click handler ─────────────────────────────────────────────────────────
+//   const handleClick = () => {
+//     if (state.selectedCategory?.id !== cat.id) {
+//       dispatch({ type: 'SEL_CAT', v: cat });
+//     }
+//     dispatch({ type: 'SET_PAGE', p: 'species' });
+//     dispatch({ type: 'SEL_SUBCAT_PATH', category: node.category, path: fullPath });
+
+//     if (isLeaf) {
+//       // Resolve matching species object from cat.species (flat list built by loadFamilyTaxonomy)
+//       const allSpecies = Array.isArray(cat.species)
+//         ? cat.species
+//         : typeof cat.subcategories === 'object' && !Array.isArray(cat.subcategories)
+//           ? Object.values(cat.subcategories).flat()
+//           : [];
+
+//       const matches = allSpecies.filter(
+//         s => Array.isArray(s.path) && s.path.includes(node.category)
+//       );
+
+//       if (matches.length === 1) {
+//         // ✅ Enrich the matched species with images from the tree node
+//         const enriched = {
+//           ...matches[0],
+//           _images: node.files?.length > 0 ? node.files : (matches[0]._images || []),
+//         };
+//         dispatch({ type: 'SEL_SPECIES_FILTER', v: enriched });
+
+//       } else if (matches.length === 0) {
+//         // ✅ FIX: No pre-built species object found — synthesize one directly
+//         // from the taxonomy tree leaf node so images are never lost
+//         const synthetic = {
+//           id: node.category,
+//           name: formatLabel(node.category),
+//           scientific: formatLabel(node.category),
+//           family: cat.name,
+//           path: fullPath.map(p => p.category),
+//           _images: node.files || [],
+//           imageUrl: node.files?.[0]?.file_url ?? null,
+//           description: '',
+//           region: '',
+//           status: '',
+//           subcategory: '',
+//           wingspan: '',
+//         };
+//         dispatch({ type: 'SEL_SPECIES_FILTER', v: synthetic });
+
+//       } else {
+//         // Multiple matches — show all under this path, no single filter
+//         dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//       }
+//     } else {
+//       setExpanded(e => !e);
+//       dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//     }
+//   };
+
+//   const { indent, fs } = dc(depth);
+//   const imgCount = isLeaf
+//     ? (node.files?.length ?? 0)
+//     : countImagesInSubtree(node);
+
+//   return (
+//     <div>
+//       <button
+//         onClick={handleClick}
+//         style={{
+//           width: '100%',
+//           display: 'flex',
+//           alignItems: 'center',
+//           gap: '0.35rem',
+//           padding: `0.28rem 0.75rem 0.28rem ${indent}rem`,
+//           background: bgColor,
+//           border: 'none',
+//           borderLeft: leftBorder,
+//           cursor: 'pointer',
+//           color,
+//           fontSize: fs,
+//           fontWeight: isFullyActive ? 600 : isAncestorHit ? 500 : 400,
+//           textAlign: 'left',
+//           lineHeight: 1.45,
+//           transition: 'background 0.12s, color 0.12s',
+//           fontFamily: 'inherit',
+//         }}
+//       >
+//         {/* Expand / leaf indicator */}
+//         <span style={{
+//           flexShrink: 0,
+//           width: '0.7rem',
+//           textAlign: 'center',
+//           fontSize: '0.62rem',
+//           color: isFullyActive || isAncestorHit ? color : 'var(--border)',
+//           transition: 'color 0.12s',
+//         }}>
+//           {isLeaf ? '◆' : expanded ? '▾' : '▸'}
+//         </span>
+
+//         {/* Label */}
+//         <span style={{
+//           flex: 1,
+//           overflow: 'hidden',
+//           textOverflow: 'ellipsis',
+//           whiteSpace: 'nowrap',
+//           fontStyle: isLeaf ? 'italic' : 'normal',
+//         }}>
+//           {label}
+//         </span>
+
+//         {/* Image count badge */}
+//         {imgCount > 0 && (
+//           <span style={{
+//             flexShrink: 0,
+//             fontSize: '0.58rem',
+//             color: 'var(--text3)',
+//             background: 'var(--bg3)',
+//             padding: '0.1rem 0.32rem',
+//             borderRadius: 4,
+//             fontVariantNumeric: 'tabular-nums',
+//           }}>
+//             {imgCount}
+//           </span>
+//         )}
+//       </button>
+
+//       {/* Children – rendered only when expanded */}
+//       {!isLeaf && expanded && Array.isArray(node.children) && node.children.length > 0 && (
+//         <div style={{
+//           borderLeft: `1px solid ${
+//             isFullyActive || isAncestorHit
+//               ? 'rgba(82,201,123,.22)'
+//               : 'var(--border)'
+//           }`,
+//           marginLeft: `${indent + 0.15}rem`,
+//         }}>
+//           {childrenWithImages(node.children).map(child => (
+//             <TaxonNode
+//               key={child.category}
+//               node={child}
+//               depth={depth + 1}
+//               cat={cat}
+//               ancestorPath={fullPath}
+//             />
+//           ))}
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
+// // ─── Flat-subcategory fallback (when no taxonomyTree) ─────────────────────────
+
+// function FlatSubcatList({ cat }) {
+//   const { state, dispatch } = useApp();
+
+//   return (
+//     <div className="sidebar-subcats">
+//       {Object.entries(cat.subcategories).map(([sub, species]) => {
+//         const isOpen = state.selectedSubcat === sub;
+//         return (
+//           <div key={sub}>
+//             <button
+//               onClick={() => {
+//                 dispatch({ type: 'SEL_SUBCAT', v: sub });
+//                 dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                 dispatch({ type: 'SET_PAGE', p: 'species' });
+//               }}
+//               className="sidebar-sublink"
+//               style={{
+//                 background: isOpen ? 'rgba(82,201,123,.08)' : 'transparent',
+//                 color:      isOpen ? '#52c97b' : 'var(--text3)',
+//                 fontWeight: isOpen ? 600 : 400,
+//               }}
+//             >
+//               <span style={{
+//                 width: 4, height: 4, borderRadius: '50%',
+//                 background: isOpen ? '#52c97b' : 'var(--border)',
+//                 display: 'inline-block', flexShrink: 0,
+//               }} />
+//               <span style={{ flex: 1 }}>{sub}</span>
+//               <span style={{ fontSize: '.6rem', color: 'var(--text3)', flexShrink: 0 }}>
+//                 {species.length}
+//               </span>
+//             </button>
+
+//             {isOpen && species.length > 0 && (
+//               <div style={{ borderLeft: '1px solid var(--border)', marginLeft: '0.9rem' }}>
+//                 {species.map(sp => {
+//                   const isSel = state.selectedSpeciesFilter?.id === sp.id;
+//                   return (
+//                     <button
+//                       key={sp.id}
+//                       onClick={() => {
+//                         dispatch({ type: 'SEL_SPECIES_FILTER', v: isSel ? null : sp });
+//                         dispatch({ type: 'SET_PAGE', p: 'species' });
+//                       }}
+//                       className="sidebar-sublink"
+//                       style={{
+//                         paddingLeft: '1.4rem',
+//                         background: isSel ? 'rgba(82,201,123,.08)' : 'transparent',
+//                         color:      isSel ? '#52c97b' : 'var(--text3)',
+//                         borderLeft: isSel ? '2px solid rgba(82,201,123,.5)' : '2px solid transparent',
+//                         fontSize: '.75rem',
+//                       }}
+//                     >
+//                       <span style={{ fontSize: '.5rem', flexShrink: 0 }}>◆</span>
+//                       <span style={{
+//                         flex: 1, overflow: 'hidden',
+//                         textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+//                         fontStyle: 'italic',
+//                       }}>
+//                         {sp.name}
+//                       </span>
+//                     </button>
+//                   );
+//                 })}
+//               </div>
+//             )}
+//           </div>
+//         );
+//       })}
+//     </div>
+//   );
+// }
+
+// // ─── Sidebar root ──────────────────────────────────────────────────────────────
+
+// export default function Sidebar() {
+//   const { state, dispatch } = useApp();
+
+//   return (
+//     <aside className={`sidebar ${state.sidebarOpen ? 'open' : ''}`}>
+//       <div className="sidebar-header">
+//         <div className="sidebar-subtitle">Browse By</div>
+//         <div className="sidebar-title">Butterfly Families</div>
+//         <button
+//           className="sidebar-close"
+//           onClick={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
+//         >✕</button>
+//       </div>
+
+//       <nav className="sidebar-nav">
+//         {/* All Families */}
+//         <button
+//           onClick={() => {
+//             dispatch({ type: 'SEL_CAT',           v: null });
+//             dispatch({ type: 'SEL_SUBCAT',         v: 'all' });
+//             dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//             dispatch({ type: 'SET_PAGE',           p: 'species' });
+//           }}
+//           className="sidebar-link"
+//           style={{
+//             background: !state.selectedCategory ? 'rgba(82,201,123,.12)' : 'transparent',
+//             borderLeft: !state.selectedCategory ? '3px solid #52c97b' : '3px solid transparent',
+//             color:      !state.selectedCategory ? '#52c97b' : 'var(--text2)',
+//             fontWeight: !state.selectedCategory ? 600 : 400,
+//           }}
+//         >
+//           All Families
+//         </button>
+
+//         {/* One block per family */}
+//         {state.categories.map(cat => {
+//           const isActive = state.selectedCategory?.id === cat.id;
+
+//           return (
+//             <div key={cat.id} className="sidebar-family">
+//               {/* Family heading */}
+//               <button
+//                 onClick={() => {
+//                   dispatch({ type: 'SEL_CAT',           v: cat });
+//                   dispatch({ type: 'SEL_SUBCAT',         v: 'all' });
+//                   dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                   dispatch({ type: 'SET_PAGE',           p: 'species' });
+//                 }}
+//                 className="sidebar-link"
+//                 style={{
+//                   background: isActive && state.selectedSubcat === 'all' && !state.selectedSpeciesFilter
+//                     ? 'rgba(82,201,123,.12)' : 'transparent',
+//                   borderLeft: isActive ? '3px solid #52c97b' : '3px solid transparent',
+//                   color:      isActive ? '#52c97b' : 'var(--text2)',
+//                   fontWeight: isActive ? 600 : 400,
+//                 }}
+//               >
+//                 <span>{cat.name}</span>
+//                 <span style={{ fontSize: '.7rem', color: 'var(--text3)', marginLeft: 'auto' }}>
+//                   {cat.count || 0}
+//                 </span>
+//               </button>
+
+//               {/* Loading spinner */}
+//               {isActive && cat.taxonomyLoading && (
+//                 <div style={{
+//                   padding: '0.5rem 1.2rem', color: 'var(--text3)',
+//                   fontSize: '.73rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
+//                 }}>
+//                   <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⟳</span>
+//                   Loading taxonomy…
+//                 </div>
+//               )}
+
+//               {/* ── Taxonomy tree from API (primary path) ── */}
+//               {isActive && cat.taxonomyTree && !cat.taxonomyLoading && (
+//                 <div className="sidebar-subcats" style={{ paddingBottom: '0.5rem' }}>
+//                   {childrenWithImages(cat.taxonomyTree.children || []).map(child => (
+//                     <TaxonNode
+//                       key={child.category}
+//                       node={child}
+//                       depth={0}
+//                       cat={cat}
+//                       ancestorPath={[]}
+//                     />
+//                   ))}
+//                 </div>
+//               )}
+
+//               {/* ── Flat fallback ── */}
+//               {isActive && !cat.taxonomyTree && !cat.taxonomyLoading &&
+//                 cat.subcategories &&
+//                 typeof cat.subcategories === 'object' &&
+//                 !Array.isArray(cat.subcategories) && (
+//                 <FlatSubcatList cat={cat} />
+//               )}
+//             </div>
+//           );
+//         })}
+//       </nav>
+
+//       <div className="sidebar-footer">
+//         <div className="sidebar-divider" />
+//         <button className="sidebar-link">Settings ⚙️</button>
+//         <button className="sidebar-link">Help ❓</button>
+//       </div>
+//     </aside>
+//   );
+// }
+
+
+// import { useState } from 'react';
+// import { useApp } from '../../context/AppContext';
+
+// // ─── Helpers ───────────────────────────────────────────────────────────────────
+
+// function formatLabel(category = '') {
+//   return category.replace(/_/g, ' ');
+// }
+
+// /**
+//  * A node is a leaf (species/subspecies) when:
+//  *  - it carries files directly  →  actual images exist
+//  *  - OR it has no children array at all / empty children
+//  */
+// function isLeafNode(node) {
+//   return (
+//     node.type === 'files' ||
+//     (Array.isArray(node.files) && node.files.length > 0) ||
+//     !Array.isArray(node.children) ||
+//     node.children.length === 0
+//   );
+// }
+
+// /**
+//  * Recursively count how many images exist in this subtree.
+//  * Used to hide completely-empty branches.
+//  */
+// function countImagesInSubtree(node) {
+//   if (!node) return 0;
+//   if (Array.isArray(node.files) && node.files.length > 0) return node.files.length;
+//   if (!Array.isArray(node.children) || node.children.length === 0) return 0;
+//   return node.children.reduce((sum, c) => sum + countImagesInSubtree(c), 0);
+// }
+
+// /** Keep only children that contain at least one image somewhere in their subtree */
+// function childrenWithImages(children) {
+//   if (!Array.isArray(children)) return [];
+//   return children.filter(c => countImagesInSubtree(c) > 0);
+// }
+
+// // Per-depth visual config
+// const DEPTH_CONFIG = [
+//   { indent: 0.75, fs: '0.86rem' },   // 0 – subfamily / genus
+//   { indent: 1.70, fs: '0.82rem' },   // 1 – genus / species
+//   { indent: 2.65, fs: '0.78rem' },   // 2 – species / subspecies
+//   { indent: 3.50, fs: '0.74rem' },   // 3+
+// ];
+// const dc = (depth) => DEPTH_CONFIG[Math.min(depth, DEPTH_CONFIG.length - 1)];
+
+// // ─── Single recursive tree node ───────────────────────────────────────────────
+
+// function TaxonNode({ node, depth, cat, ancestorPath }) {
+//   const { state, dispatch } = useApp();
+//   const [expanded, setExpanded] = useState(depth === 0);
+
+//   const label  = formatLabel(node.category);
+//   const isLeaf = isLeafNode(node);
+
+//   // Skip nodes with no images anywhere in their subtree
+//   if (countImagesInSubtree(node) === 0) return null;
+
+//   // Build breadcrumb path up to this node
+//   const fullPath = [...ancestorPath, { category: node.category, label }];
+
+//   // ── Active-state logic ────────────────────────────────────────────────────
+//   const activePath      = state.selectedSubcatPath || [];
+//   const inActivePath    = activePath.some(c => c.category === node.category);
+//   const isActiveLeaf    = !!state.selectedSpeciesFilter?.path?.includes(node.category);
+//   const isActiveNonLeaf =
+//     state.selectedSubcat === node.category && !state.selectedSpeciesFilter;
+//   const isFullyActive   = isActiveLeaf || isActiveNonLeaf;
+//   const isAncestorHit   = inActivePath && !isFullyActive;
+
+//   const color      = isFullyActive ? '#52c97b' : isAncestorHit ? '#3a9960' : 'var(--text3)';
+//   const bgColor    = isFullyActive
+//     ? 'rgba(82,201,123,.13)'
+//     : isAncestorHit
+//     ? 'rgba(82,201,123,.05)'
+//     : 'transparent';
+//   const leftBorder = isFullyActive
+//     ? '2px solid rgba(82,201,123,.6)'
+//     : '2px solid transparent';
+
+//   // ── Click handler ─────────────────────────────────────────────────────────
+//   const handleClick = () => {
+//     if (state.selectedCategory?.id !== cat.id) {
+//       dispatch({ type: 'SEL_CAT', v: cat });
+//     }
+//     dispatch({ type: 'SET_PAGE', p: 'species' });
+//     dispatch({ type: 'SEL_SUBCAT_PATH', category: node.category, path: fullPath });
+
+//     if (isLeaf) {
+//       // Resolve matching species object from cat.species (flat list built by loadFamilyTaxonomy)
+//       const allSpecies = Array.isArray(cat.species)
+//         ? cat.species
+//         : typeof cat.subcategories === 'object' && !Array.isArray(cat.subcategories)
+//           ? Object.values(cat.subcategories).flat()
+//           : [];
+
+//       const matches = allSpecies.filter(
+//         s => Array.isArray(s.path) && s.path.includes(node.category)
+//       );
+
+//       // ✅ Always build from the tree node so ALL files from the API are included.
+//       // Merge any existing species metadata (name, description, status, etc.)
+//       // but ALWAYS take _images from node.files — that is the source of truth.
+//       // This fixes the case where matches.length === 0 (no pre-built species object)
+//       // which previously dispatched null and showed "No species match your filters."
+//       const base = matches.length === 1 ? matches[0] : {};
+
+//       const synthetic = {
+//         id:          base.id          || node.category,
+//         name:        base.name        || formatLabel(node.category),
+//         scientific:  base.scientific  || formatLabel(node.category),
+//         family:      base.family      || cat.name,
+//         description: base.description || '',
+//         region:      base.region      || '',
+//         status:      base.status      || '',
+//         subcategory: base.subcategory || '',
+//         wingspan:    base.wingspan    || '',
+//         path:        fullPath.map(p => p.category),
+//         // node.files is the authoritative image list from the API —
+//         // exactly as many images as the API returned will be shown
+//         _images:     node.files || [],
+//         imageUrl:    node.files?.[0]?.file_url ?? base.imageUrl ?? null,
+//       };
+
+//       dispatch({ type: 'SEL_SPECIES_FILTER', v: synthetic });
+
+//     } else {
+//       setExpanded(e => !e);
+//       dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//     }
+//   };
+
+//   const { indent, fs } = dc(depth);
+//   const imgCount = isLeaf
+//     ? (node.files?.length ?? 0)
+//     : countImagesInSubtree(node);
+
+//   return (
+//     <div>
+//       <button
+//         onClick={handleClick}
+//         style={{
+//           width: '100%',
+//           display: 'flex',
+//           alignItems: 'center',
+//           gap: '0.35rem',
+//           padding: `0.28rem 0.75rem 0.28rem ${indent}rem`,
+//           background: bgColor,
+//           border: 'none',
+//           borderLeft: leftBorder,
+//           cursor: 'pointer',
+//           color,
+//           fontSize: fs,
+//           fontWeight: isFullyActive ? 600 : isAncestorHit ? 500 : 400,
+//           textAlign: 'left',
+//           lineHeight: 1.45,
+//           transition: 'background 0.12s, color 0.12s',
+//           fontFamily: 'inherit',
+//         }}
+//       >
+//         {/* Expand / leaf indicator */}
+//         <span style={{
+//           flexShrink: 0,
+//           width: '0.7rem',
+//           textAlign: 'center',
+//           fontSize: '0.62rem',
+//           color: isFullyActive || isAncestorHit ? color : 'var(--border)',
+//           transition: 'color 0.12s',
+//         }}>
+//           {isLeaf ? '◆' : expanded ? '▾' : '▸'}
+//         </span>
+
+//         {/* Label */}
+//         <span style={{
+//           flex: 1,
+//           overflow: 'hidden',
+//           textOverflow: 'ellipsis',
+//           whiteSpace: 'nowrap',
+//           fontStyle: isLeaf ? 'italic' : 'normal',
+//         }}>
+//           {label}
+//         </span>
+
+//         {/* Image count badge */}
+//         {imgCount > 0 && (
+//           <span style={{
+//             flexShrink: 0,
+//             fontSize: '0.58rem',
+//             color: 'var(--text3)',
+//             background: 'var(--bg3)',
+//             padding: '0.1rem 0.32rem',
+//             borderRadius: 4,
+//             fontVariantNumeric: 'tabular-nums',
+//           }}>
+//             {imgCount}
+//           </span>
+//         )}
+//       </button>
+
+//       {/* Children – rendered only when expanded */}
+//       {!isLeaf && expanded && Array.isArray(node.children) && node.children.length > 0 && (
+//         <div style={{
+//           borderLeft: `1px solid ${
+//             isFullyActive || isAncestorHit
+//               ? 'rgba(82,201,123,.22)'
+//               : 'var(--border)'
+//           }`,
+//           marginLeft: `${indent + 0.15}rem`,
+//         }}>
+//           {childrenWithImages(node.children).map(child => (
+//             <TaxonNode
+//               key={child.category}
+//               node={child}
+//               depth={depth + 1}
+//               cat={cat}
+//               ancestorPath={fullPath}
+//             />
+//           ))}
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
+// // ─── Flat-subcategory fallback (when no taxonomyTree) ─────────────────────────
+
+// function FlatSubcatList({ cat }) {
+//   const { state, dispatch } = useApp();
+
+//   return (
+//     <div className="sidebar-subcats">
+//       {Object.entries(cat.subcategories).map(([sub, species]) => {
+//         const isOpen = state.selectedSubcat === sub;
+//         return (
+//           <div key={sub}>
+//             <button
+//               onClick={() => {
+//                 dispatch({ type: 'SEL_SUBCAT', v: sub });
+//                 dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                 dispatch({ type: 'SET_PAGE', p: 'species' });
+//               }}
+//               className="sidebar-sublink"
+//               style={{
+//                 background: isOpen ? 'rgba(82,201,123,.08)' : 'transparent',
+//                 color:      isOpen ? '#52c97b' : 'var(--text3)',
+//                 fontWeight: isOpen ? 600 : 400,
+//               }}
+//             >
+//               <span style={{
+//                 width: 4, height: 4, borderRadius: '50%',
+//                 background: isOpen ? '#52c97b' : 'var(--border)',
+//                 display: 'inline-block', flexShrink: 0,
+//               }} />
+//               <span style={{ flex: 1 }}>{sub}</span>
+//               <span style={{ fontSize: '.6rem', color: 'var(--text3)', flexShrink: 0 }}>
+//                 {species.length}
+//               </span>
+//             </button>
+
+//             {isOpen && species.length > 0 && (
+//               <div style={{ borderLeft: '1px solid var(--border)', marginLeft: '0.9rem' }}>
+//                 {species.map(sp => {
+//                   const isSel = state.selectedSpeciesFilter?.id === sp.id;
+//                   return (
+//                     <button
+//                       key={sp.id}
+//                       onClick={() => {
+//                         dispatch({ type: 'SEL_SPECIES_FILTER', v: isSel ? null : sp });
+//                         dispatch({ type: 'SET_PAGE', p: 'species' });
+//                       }}
+//                       className="sidebar-sublink"
+//                       style={{
+//                         paddingLeft: '1.4rem',
+//                         background: isSel ? 'rgba(82,201,123,.08)' : 'transparent',
+//                         color:      isSel ? '#52c97b' : 'var(--text3)',
+//                         borderLeft: isSel ? '2px solid rgba(82,201,123,.5)' : '2px solid transparent',
+//                         fontSize: '.75rem',
+//                       }}
+//                     >
+//                       <span style={{ fontSize: '.5rem', flexShrink: 0 }}>◆</span>
+//                       <span style={{
+//                         flex: 1, overflow: 'hidden',
+//                         textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+//                         fontStyle: 'italic',
+//                       }}>
+//                         {sp.name}
+//                       </span>
+//                     </button>
+//                   );
+//                 })}
+//               </div>
+//             )}
+//           </div>
+//         );
+//       })}
+//     </div>
+//   );
+// }
+
+// // ─── Sidebar root ──────────────────────────────────────────────────────────────
+
+// export default function Sidebar() {
+//   const { state, dispatch } = useApp();
+
+//   return (
+//     <aside className={`sidebar ${state.sidebarOpen ? 'open' : ''}`}>
+//       <div className="sidebar-header">
+//         <div className="sidebar-subtitle">Browse By</div>
+//         <div className="sidebar-title">Butterfly Families</div>
+//         <button
+//           className="sidebar-close"
+//           onClick={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
+//         >✕</button>
+//       </div>
+
+//       <nav className="sidebar-nav">
+//         {/* All Families */}
+//         <button
+//           onClick={() => {
+//             dispatch({ type: 'SEL_CAT',           v: null });
+//             dispatch({ type: 'SEL_SUBCAT',         v: 'all' });
+//             dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//             dispatch({ type: 'SET_PAGE',           p: 'species' });
+//           }}
+//           className="sidebar-link"
+//           style={{
+//             background: !state.selectedCategory ? 'rgba(82,201,123,.12)' : 'transparent',
+//             borderLeft: !state.selectedCategory ? '3px solid #52c97b' : '3px solid transparent',
+//             color:      !state.selectedCategory ? '#52c97b' : 'var(--text2)',
+//             fontWeight: !state.selectedCategory ? 600 : 400,
+//           }}
+//         >
+//           All Families
+//         </button>
+
+//         {/* One block per family */}
+//         {state.categories.map(cat => {
+//           const isActive = state.selectedCategory?.id === cat.id;
+
+//           return (
+//             <div key={cat.id} className="sidebar-family">
+//               {/* Family heading */}
+//               <button
+//                 onClick={() => {
+//                   dispatch({ type: 'SEL_CAT',           v: cat });
+//                   dispatch({ type: 'SEL_SUBCAT',         v: 'all' });
+//                   dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                   dispatch({ type: 'SET_PAGE',           p: 'species' });
+//                 }}
+//                 className="sidebar-link"
+//                 style={{
+//                   background: isActive && state.selectedSubcat === 'all' && !state.selectedSpeciesFilter
+//                     ? 'rgba(82,201,123,.12)' : 'transparent',
+//                   borderLeft: isActive ? '3px solid #52c97b' : '3px solid transparent',
+//                   color:      isActive ? '#52c97b' : 'var(--text2)',
+//                   fontWeight: isActive ? 600 : 400,
+//                 }}
+//               >
+//                 <span>{cat.name}</span>
+//                 <span style={{ fontSize: '.7rem', color: 'var(--text3)', marginLeft: 'auto' }}>
+//                   {cat.count || 0}
+//                 </span>
+//               </button>
+
+//               {/* Loading spinner */}
+//               {isActive && cat.taxonomyLoading && (
+//                 <div style={{
+//                   padding: '0.5rem 1.2rem', color: 'var(--text3)',
+//                   fontSize: '.73rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
+//                 }}>
+//                   <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⟳</span>
+//                   Loading taxonomy…
+//                 </div>
+//               )}
+
+//               {/* ── Taxonomy tree from API (primary path) ── */}
+//               {isActive && cat.taxonomyTree && !cat.taxonomyLoading && (
+//                 <div className="sidebar-subcats" style={{ paddingBottom: '0.5rem' }}>
+//                   {childrenWithImages(cat.taxonomyTree.children || []).map(child => (
+//                     <TaxonNode
+//                       key={child.category}
+//                       node={child}
+//                       depth={0}
+//                       cat={cat}
+//                       ancestorPath={[]}
+//                     />
+//                   ))}
+//                 </div>
+//               )}
+
+//               {/* ── Flat fallback ── */}
+//               {isActive && !cat.taxonomyTree && !cat.taxonomyLoading &&
+//                 cat.subcategories &&
+//                 typeof cat.subcategories === 'object' &&
+//                 !Array.isArray(cat.subcategories) && (
+//                 <FlatSubcatList cat={cat} />
+//               )}
+//             </div>
+//           );
+//         })}
+//       </nav>
+
+//       <div className="sidebar-footer">
+//         <div className="sidebar-divider" />
+//         <button className="sidebar-link">Settings ⚙️</button>
+//         <button className="sidebar-link">Help ❓</button>
+//       </div>
+//     </aside>
+//   );
+// }
+
+
+
+// import { useState } from 'react';
+// import { useApp } from '../../context/AppContext';
+
+// // ─── Helpers ───────────────────────────────────────────────────────────────────
+
+// function formatLabel(category = '') {
+//   return category.replace(/_/g, ' ');
+// }
+
+// function isLeafNode(node) {
+//   return (
+//     node.type === 'files' ||
+//     (Array.isArray(node.files) && node.files.length > 0) ||
+//     !Array.isArray(node.children) ||
+//     node.children.length === 0
+//   );
+// }
+
+// function countImagesInSubtree(node) {
+//   if (!node) return 0;
+//   if (Array.isArray(node.files) && node.files.length > 0) return node.files.length;
+//   if (!Array.isArray(node.children) || node.children.length === 0) return 0;
+//   return node.children.reduce((sum, c) => sum + countImagesInSubtree(c), 0);
+// }
+
+// function childrenWithImages(children) {
+//   if (!Array.isArray(children)) return [];
+//   return children.filter(c => countImagesInSubtree(c) > 0);
+// }
+
+// /** Collect every file object from this node and all its descendants */
+// function collectAllFiles(node) {
+//   if (!node) return [];
+//   const own = Array.isArray(node.files) ? node.files : [];
+//   if (!Array.isArray(node.children) || node.children.length === 0) return own;
+//   return own.concat(node.children.flatMap(collectAllFiles));
+// }
+
+// // Per-depth visual config
+// const DEPTH_CONFIG = [
+//   { indent: 0.75, fs: '0.86rem' },
+//   { indent: 1.70, fs: '0.82rem' },
+//   { indent: 2.65, fs: '0.78rem' },
+//   { indent: 3.50, fs: '0.74rem' },
+// ];
+// const dc = (depth) => DEPTH_CONFIG[Math.min(depth, DEPTH_CONFIG.length - 1)];
+
+// // ─── Single recursive tree node ───────────────────────────────────────────────
+
+// function TaxonNode({ node, depth, cat, ancestorPath }) {
+//   const { state, dispatch } = useApp();
+//   const [expanded, setExpanded] = useState(depth === 0);
+
+//   const label  = formatLabel(node.category);
+//   const isLeaf = isLeafNode(node);
+
+//   if (countImagesInSubtree(node) === 0) return null;
+
+//   const fullPath = [...ancestorPath, { category: node.category, label }];
+
+//   const activePath      = state.selectedSubcatPath || [];
+//   const inActivePath    = activePath.some(c => c.category === node.category);
+//   const isActiveLeaf    = !!state.selectedSpeciesFilter?.path?.includes(node.category);
+//   const isActiveNonLeaf =
+//     state.selectedSubcat === node.category && !state.selectedSpeciesFilter;
+//   const isFullyActive   = isActiveLeaf || isActiveNonLeaf;
+//   const isAncestorHit   = inActivePath && !isFullyActive;
+
+//   const color      = isFullyActive ? '#52c97b' : isAncestorHit ? '#3a9960' : 'var(--text3)';
+//   const bgColor    = isFullyActive
+//     ? 'rgba(82,201,123,.13)'
+//     : isAncestorHit
+//     ? 'rgba(82,201,123,.05)'
+//     : 'transparent';
+//   const leftBorder = isFullyActive
+//     ? '2px solid rgba(82,201,123,.6)'
+//     : '2px solid transparent';
+
+//   const handleClick = () => {
+//     if (state.selectedCategory?.id !== cat.id) {
+//       dispatch({ type: 'SEL_CAT', v: cat });
+//     }
+//     dispatch({ type: 'SET_PAGE', p: 'species' });
+//     dispatch({ type: 'SEL_SUBCAT_PATH', category: node.category, path: fullPath });
+
+//     if (isLeaf) {
+//       const allSpecies = Array.isArray(cat.species)
+//         ? cat.species
+//         : typeof cat.subcategories === 'object' && !Array.isArray(cat.subcategories)
+//           ? Object.values(cat.subcategories).flat()
+//           : [];
+
+//       const matches = allSpecies.filter(
+//         s => Array.isArray(s.path) && s.path.includes(node.category)
+//       );
+
+//       const base = matches.length === 1 ? matches[0] : {};
+
+//       // Collect all files from this node AND all its descendants
+//       const allFiles = collectAllFiles(node);
+
+//       const synthetic = {
+//         id:          base.id          || node.category,
+//         name:        base.name        || formatLabel(node.category),
+//         scientific:  base.scientific  || formatLabel(node.category),
+//         family:      base.family      || cat.name,
+//         description: base.description || '',
+//         region:      base.region      || '',
+//         status:      base.status      || '',
+//         subcategory: base.subcategory || '',
+//         wingspan:    base.wingspan    || '',
+//         path:        fullPath.map(p => p.category),
+//         _images:     allFiles,
+//         imageUrl:    allFiles[0]?.file_url ?? base.imageUrl ?? null,
+//       };
+
+//       dispatch({ type: 'SEL_SPECIES_FILTER', v: synthetic });
+
+//     } else {
+//       setExpanded(e => !e);
+//       dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//     }
+//   };
+
+//   const { indent, fs } = dc(depth);
+//   const imgCount = isLeaf
+//     ? (node.files?.length ?? 0)
+//     : countImagesInSubtree(node);
+
+//   return (
+//     <div>
+//       <button
+//         onClick={handleClick}
+//         style={{
+//           width: '100%',
+//           display: 'flex',
+//           alignItems: 'center',
+//           gap: '0.35rem',
+//           padding: `0.28rem 0.75rem 0.28rem ${indent}rem`,
+//           background: bgColor,
+//           border: 'none',
+//           borderLeft: leftBorder,
+//           cursor: 'pointer',
+//           color,
+//           fontSize: fs,
+//           fontWeight: isFullyActive ? 600 : isAncestorHit ? 500 : 400,
+//           textAlign: 'left',
+//           lineHeight: 1.45,
+//           transition: 'background 0.12s, color 0.12s',
+//           fontFamily: 'inherit',
+//         }}
+//       >
+//         <span style={{
+//           flexShrink: 0,
+//           width: '0.7rem',
+//           textAlign: 'center',
+//           fontSize: '0.62rem',
+//           color: isFullyActive || isAncestorHit ? color : 'var(--border)',
+//           transition: 'color 0.12s',
+//         }}>
+//           {isLeaf ? '◆' : expanded ? '▾' : '▸'}
+//         </span>
+
+//         <span style={{
+//           flex: 1,
+//           overflow: 'hidden',
+//           textOverflow: 'ellipsis',
+//           whiteSpace: 'nowrap',
+//           fontStyle: isLeaf ? 'italic' : 'normal',
+//         }}>
+//           {label}
+//         </span>
+
+//         {imgCount > 0 && (
+//           <span style={{
+//             flexShrink: 0,
+//             fontSize: '0.58rem',
+//             color: 'var(--text3)',
+//             background: 'var(--bg3)',
+//             padding: '0.1rem 0.32rem',
+//             borderRadius: 4,
+//             fontVariantNumeric: 'tabular-nums',
+//           }}>
+//             {imgCount}
+//           </span>
+//         )}
+//       </button>
+
+//       {!isLeaf && expanded && Array.isArray(node.children) && node.children.length > 0 && (
+//         <div style={{
+//           borderLeft: `1px solid ${
+//             isFullyActive || isAncestorHit
+//               ? 'rgba(82,201,123,.22)'
+//               : 'var(--border)'
+//           }`,
+//           marginLeft: `${indent + 0.15}rem`,
+//         }}>
+//           {childrenWithImages(node.children).map(child => (
+//             <TaxonNode
+//               key={child.category}
+//               node={child}
+//               depth={depth + 1}
+//               cat={cat}
+//               ancestorPath={fullPath}
+//             />
+//           ))}
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
+// // ─── Flat-subcategory fallback ─────────────────────────────────────────────────
+
+// function FlatSubcatList({ cat }) {
+//   const { state, dispatch } = useApp();
+
+//   return (
+//     <div className="sidebar-subcats">
+//       {Object.entries(cat.subcategories).map(([sub, species]) => {
+//         const isOpen = state.selectedSubcat === sub;
+//         return (
+//           <div key={sub}>
+//             <button
+//               onClick={() => {
+//                 dispatch({ type: 'SEL_SUBCAT', v: sub });
+//                 dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                 dispatch({ type: 'SET_PAGE', p: 'species' });
+//               }}
+//               className="sidebar-sublink"
+//               style={{
+//                 background: isOpen ? 'rgba(82,201,123,.08)' : 'transparent',
+//                 color:      isOpen ? '#52c97b' : 'var(--text3)',
+//                 fontWeight: isOpen ? 600 : 400,
+//               }}
+//             >
+//               <span style={{
+//                 width: 4, height: 4, borderRadius: '50%',
+//                 background: isOpen ? '#52c97b' : 'var(--border)',
+//                 display: 'inline-block', flexShrink: 0,
+//               }} />
+//               <span style={{ flex: 1 }}>{sub}</span>
+//               <span style={{ fontSize: '.6rem', color: 'var(--text3)', flexShrink: 0 }}>
+//                 {species.length}
+//               </span>
+//             </button>
+
+//             {isOpen && species.length > 0 && (
+//               <div style={{ borderLeft: '1px solid var(--border)', marginLeft: '0.9rem' }}>
+//                 {species.map(sp => {
+//                   const isSel = state.selectedSpeciesFilter?.id === sp.id;
+//                   return (
+//                     <button
+//                       key={sp.id}
+//                       onClick={() => {
+//                         dispatch({ type: 'SEL_SPECIES_FILTER', v: isSel ? null : sp });
+//                         dispatch({ type: 'SET_PAGE', p: 'species' });
+//                       }}
+//                       className="sidebar-sublink"
+//                       style={{
+//                         paddingLeft: '1.4rem',
+//                         background: isSel ? 'rgba(82,201,123,.08)' : 'transparent',
+//                         color:      isSel ? '#52c97b' : 'var(--text3)',
+//                         borderLeft: isSel ? '2px solid rgba(82,201,123,.5)' : '2px solid transparent',
+//                         fontSize: '.75rem',
+//                       }}
+//                     >
+//                       <span style={{ fontSize: '.5rem', flexShrink: 0 }}>◆</span>
+//                       <span style={{
+//                         flex: 1, overflow: 'hidden',
+//                         textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+//                         fontStyle: 'italic',
+//                       }}>
+//                         {sp.name}
+//                       </span>
+//                     </button>
+//                   );
+//                 })}
+//               </div>
+//             )}
+//           </div>
+//         );
+//       })}
+//     </div>
+//   );
+// }
+
+// // ─── Sidebar root ──────────────────────────────────────────────────────────────
+
+// export default function Sidebar() {
+//   const { state, dispatch } = useApp();
+
+//   return (
+//     <aside className={`sidebar ${state.sidebarOpen ? 'open' : ''}`}>
+//       <div className="sidebar-header">
+//         <div className="sidebar-subtitle">Browse By</div>
+//         <div className="sidebar-title">Butterfly Families</div>
+//         <button
+//           className="sidebar-close"
+//           onClick={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
+//         >✕</button>
+//       </div>
+
+//       <nav className="sidebar-nav">
+//         <button
+//           onClick={() => {
+//             dispatch({ type: 'SEL_CAT',           v: null });
+//             dispatch({ type: 'SEL_SUBCAT',         v: 'all' });
+//             dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//             dispatch({ type: 'SET_PAGE',           p: 'species' });
+//           }}
+//           className="sidebar-link"
+//           style={{
+//             background: !state.selectedCategory ? 'rgba(82,201,123,.12)' : 'transparent',
+//             borderLeft: !state.selectedCategory ? '3px solid #52c97b' : '3px solid transparent',
+//             color:      !state.selectedCategory ? '#52c97b' : 'var(--text2)',
+//             fontWeight: !state.selectedCategory ? 600 : 400,
+//           }}
+//         >
+//           All Families
+//         </button>
+
+//         {state.categories.map(cat => {
+//           const isActive = state.selectedCategory?.id === cat.id;
+
+//           return (
+//             <div key={cat.id} className="sidebar-family">
+//               <button
+//                 onClick={() => {
+//                   dispatch({ type: 'SEL_CAT',           v: cat });
+//                   dispatch({ type: 'SEL_SUBCAT',         v: 'all' });
+//                   dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                   dispatch({ type: 'SET_PAGE',           p: 'species' });
+//                 }}
+//                 className="sidebar-link"
+//                 style={{
+//                   background: isActive && state.selectedSubcat === 'all' && !state.selectedSpeciesFilter
+//                     ? 'rgba(82,201,123,.12)' : 'transparent',
+//                   borderLeft: isActive ? '3px solid #52c97b' : '3px solid transparent',
+//                   color:      isActive ? '#52c97b' : 'var(--text2)',
+//                   fontWeight: isActive ? 600 : 400,
+//                 }}
+//               >
+//                 <span>{cat.name}</span>
+//                 <span style={{ fontSize: '.7rem', color: 'var(--text3)', marginLeft: 'auto' }}>
+//                   {cat.count || 0}
+//                 </span>
+//               </button>
+
+//               {isActive && cat.taxonomyLoading && (
+//                 <div style={{
+//                   padding: '0.5rem 1.2rem', color: 'var(--text3)',
+//                   fontSize: '.73rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
+//                 }}>
+//                   <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⟳</span>
+//                   Loading taxonomy…
+//                 </div>
+//               )}
+
+//               {isActive && cat.taxonomyTree && !cat.taxonomyLoading && (
+//                 <div className="sidebar-subcats" style={{ paddingBottom: '0.5rem' }}>
+//                   {childrenWithImages(cat.taxonomyTree.children || []).map(child => (
+//                     <TaxonNode
+//                       key={child.category}
+//                       node={child}
+//                       depth={0}
+//                       cat={cat}
+//                       ancestorPath={[]}
+//                     />
+//                   ))}
+//                 </div>
+//               )}
+
+//               {isActive && !cat.taxonomyTree && !cat.taxonomyLoading &&
+//                 cat.subcategories &&
+//                 typeof cat.subcategories === 'object' &&
+//                 !Array.isArray(cat.subcategories) && (
+//                 <FlatSubcatList cat={cat} />
+//               )}
+//             </div>
+//           );
+//         })}
+//       </nav>
+
+//       <div className="sidebar-footer">
+//         <div className="sidebar-divider" />
+//         <button className="sidebar-link">Settings ⚙️</button>
+//         <button className="sidebar-link">Help ❓</button>
+//       </div>
+//     </aside>
+//   );
+// }
+
+// import { useState } from 'react';
+// import { useApp } from '../../context/AppContext';
+
+// // ─── Helpers ───────────────────────────────────────────────────────────────────
+
+// function formatLabel(category = '') {
+//   return category.replace(/_/g, ' ');
+// }
+
+// function isLeafNode(node) {
+//   return (
+//     node.type === 'files' ||
+//     (Array.isArray(node.files) && node.files.length > 0) ||
+//     !Array.isArray(node.children) ||
+//     node.children.length === 0
+//   );
+// }
+
+// function countImagesInSubtree(node) {
+//   if (!node) return 0;
+//   if (Array.isArray(node.files) && node.files.length > 0) return node.files.length;
+//   if (!Array.isArray(node.children) || node.children.length === 0) return 0;
+//   return node.children.reduce((sum, c) => sum + countImagesInSubtree(c), 0);
+// }
+
+// function childrenWithImages(children) {
+//   if (!Array.isArray(children)) return [];
+//   return children.filter(c => countImagesInSubtree(c) > 0);
+// }
+
+// /** Collect every file object from this node and all its descendants */
+// function collectAllFiles(node) {
+//   if (!node) return [];
+//   const own = Array.isArray(node.files) ? node.files : [];
+//   if (!Array.isArray(node.children) || node.children.length === 0) return own;
+//   return own.concat(node.children.flatMap(collectAllFiles));
+// }
+
+// // Per-depth visual config
+// const DEPTH_CONFIG = [
+//   { indent: 0.75, fs: '0.86rem' },
+//   { indent: 1.70, fs: '0.82rem' },
+//   { indent: 2.65, fs: '0.78rem' },
+//   { indent: 3.50, fs: '0.74rem' },
+// ];
+// const dc = (depth) => DEPTH_CONFIG[Math.min(depth, DEPTH_CONFIG.length - 1)];
+
+// // ─── Single recursive tree node ───────────────────────────────────────────────
+
+// function TaxonNode({ node, depth, cat, ancestorPath }) {
+//   const { state, dispatch } = useApp();
+//   const [expanded, setExpanded] = useState(depth === 0);
+
+//   const label  = formatLabel(node.category);
+//   const isLeaf = isLeafNode(node);
+
+//   if (countImagesInSubtree(node) === 0) return null;
+
+//   const fullPath = [...ancestorPath, { category: node.category, label }];
+
+//   const activePath      = state.selectedSubcatPath || [];
+//   const inActivePath    = activePath.some(c => c.category === node.category);
+//   const isActiveLeaf    = !!state.selectedSpeciesFilter?.path?.includes(node.category);
+//   const isActiveNonLeaf =
+//     state.selectedSubcat === node.category && !state.selectedSpeciesFilter;
+//   const isFullyActive   = isActiveLeaf || isActiveNonLeaf;
+//   const isAncestorHit   = inActivePath && !isFullyActive;
+
+//   const color      = isFullyActive ? '#52c97b' : isAncestorHit ? '#3a9960' : 'var(--text3)';
+//   const bgColor    = isFullyActive
+//     ? 'rgba(82,201,123,.13)'
+//     : isAncestorHit
+//     ? 'rgba(82,201,123,.05)'
+//     : 'transparent';
+//   const leftBorder = isFullyActive
+//     ? '2px solid rgba(82,201,123,.6)'
+//     : '2px solid transparent';
+
+//   const handleClick = () => {
+//     if (state.selectedCategory?.id !== cat.id) {
+//       dispatch({ type: 'SEL_CAT', v: cat });
+//     }
+//     dispatch({ type: 'SET_PAGE', p: 'species' });
+//     dispatch({ type: 'SEL_SUBCAT_PATH', category: node.category, path: fullPath });
+
+//     if (isLeaf) {
+//       const allSpecies = Array.isArray(cat.species)
+//         ? cat.species
+//         : typeof cat.subcategories === 'object' && !Array.isArray(cat.subcategories)
+//           ? Object.values(cat.subcategories).flat()
+//           : [];
+
+//       const matches = allSpecies.filter(
+//         s => Array.isArray(s.path) && s.path.includes(node.category)
+//       );
+
+//       const base = matches.length === 1 ? matches[0] : {};
+
+//       // Collect all files from this node AND all its descendants
+//       const allFiles = collectAllFiles(node);
+
+//       const synthetic = {
+//         id:          base.id          || node.category,
+//         name:        base.name        || formatLabel(node.category),
+//         scientific:  base.scientific  || formatLabel(node.category),
+//         family:      base.family      || cat.name,
+//         description: base.description || '',
+//         region:      base.region      || '',
+//         status:      base.status      || '',
+//         subcategory: base.subcategory || '',
+//         wingspan:    base.wingspan    || '',
+//         path:        fullPath.map(p => p.category),
+//         _images:     allFiles,
+//         imageUrl:    allFiles[0]?.file_url ?? base.imageUrl ?? null,
+//       };
+
+//       dispatch({ type: 'SEL_SPECIES_FILTER', v: synthetic });
+
+//     } else {
+//       setExpanded(e => !e);
+//       dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//     }
+//   };
+
+//   const { indent, fs } = dc(depth);
+//   const imgCount = isLeaf
+//     ? (node.files?.length ?? 0)
+//     : countImagesInSubtree(node);
+
+//   return (
+//     <div>
+//       <button
+//         onClick={handleClick}
+//         style={{
+//           width: '100%',
+//           display: 'flex',
+//           alignItems: 'center',
+//           gap: '0.35rem',
+//           padding: `0.28rem 0.75rem 0.28rem ${indent}rem`,
+//           background: bgColor,
+//           border: 'none',
+//           borderLeft: leftBorder,
+//           cursor: 'pointer',
+//           color,
+//           fontSize: fs,
+//           fontWeight: isFullyActive ? 600 : isAncestorHit ? 500 : 400,
+//           textAlign: 'left',
+//           lineHeight: 1.45,
+//           transition: 'background 0.12s, color 0.12s',
+//           fontFamily: 'inherit',
+//         }}
+//       >
+//         <span style={{
+//           flexShrink: 0,
+//           width: '0.7rem',
+//           textAlign: 'center',
+//           fontSize: '0.62rem',
+//           color: isFullyActive || isAncestorHit ? color : 'var(--border)',
+//           transition: 'color 0.12s',
+//         }}>
+//           {isLeaf ? '◆' : expanded ? '▾' : '▸'}
+//         </span>
+
+//         <span style={{
+//           flex: 1,
+//           overflow: 'hidden',
+//           textOverflow: 'ellipsis',
+//           whiteSpace: 'nowrap',
+//           fontStyle: isLeaf ? 'italic' : 'normal',
+//         }}>
+//           {label}
+//         </span>
+
+//         {/* ✅ Only show count badge for non-leaf (family/group) nodes */}
+//         {!isLeaf && imgCount > 0 && (
+//           <span style={{
+//             flexShrink: 0,
+//             fontSize: '0.58rem',
+//             color: 'var(--text3)',
+//             background: 'var(--bg3)',
+//             padding: '0.1rem 0.32rem',
+//             borderRadius: 4,
+//             fontVariantNumeric: 'tabular-nums',
+//           }}>
+//             {imgCount}
+//           </span>
+//         )}
+//       </button>
+
+//       {!isLeaf && expanded && Array.isArray(node.children) && node.children.length > 0 && (
+//         <div style={{
+//           borderLeft: `1px solid ${
+//             isFullyActive || isAncestorHit
+//               ? 'rgba(82,201,123,.22)'
+//               : 'var(--border)'
+//           }`,
+//           marginLeft: `${indent + 0.15}rem`,
+//         }}>
+//           {childrenWithImages(node.children).map(child => (
+//             <TaxonNode
+//               key={child.category}
+//               node={child}
+//               depth={depth + 1}
+//               cat={cat}
+//               ancestorPath={fullPath}
+//             />
+//           ))}
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
+// // ─── Flat-subcategory fallback ─────────────────────────────────────────────────
+
+// function FlatSubcatList({ cat }) {
+//   const { state, dispatch } = useApp();
+
+//   return (
+//     <div className="sidebar-subcats">
+//       {Object.entries(cat.subcategories).map(([sub, species]) => {
+//         const isOpen = state.selectedSubcat === sub;
+//         return (
+//           <div key={sub}>
+//             <button
+//               onClick={() => {
+//                 dispatch({ type: 'SEL_SUBCAT', v: sub });
+//                 dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                 dispatch({ type: 'SET_PAGE', p: 'species' });
+//               }}
+//               className="sidebar-sublink"
+//               style={{
+//                 background: isOpen ? 'rgba(82,201,123,.08)' : 'transparent',
+//                 color:      isOpen ? '#52c97b' : 'var(--text3)',
+//                 fontWeight: isOpen ? 600 : 400,
+//               }}
+//             >
+//               <span style={{
+//                 width: 4, height: 4, borderRadius: '50%',
+//                 background: isOpen ? '#52c97b' : 'var(--border)',
+//                 display: 'inline-block', flexShrink: 0,
+//               }} />
+//               <span style={{ flex: 1 }}>{sub}</span>
+//               <span style={{ fontSize: '.6rem', color: 'var(--text3)', flexShrink: 0 }}>
+//                 {species.length}
+//               </span>
+//             </button>
+
+//             {isOpen && species.length > 0 && (
+//               <div style={{ borderLeft: '1px solid var(--border)', marginLeft: '0.9rem' }}>
+//                 {species.map(sp => {
+//                   const isSel = state.selectedSpeciesFilter?.id === sp.id;
+//                   return (
+//                     <button
+//                       key={sp.id}
+//                       onClick={() => {
+//                         dispatch({ type: 'SEL_SPECIES_FILTER', v: isSel ? null : sp });
+//                         dispatch({ type: 'SET_PAGE', p: 'species' });
+//                       }}
+//                       className="sidebar-sublink"
+//                       style={{
+//                         paddingLeft: '1.4rem',
+//                         background: isSel ? 'rgba(82,201,123,.08)' : 'transparent',
+//                         color:      isSel ? '#52c97b' : 'var(--text3)',
+//                         borderLeft: isSel ? '2px solid rgba(82,201,123,.5)' : '2px solid transparent',
+//                         fontSize: '.75rem',
+//                       }}
+//                     >
+//                       <span style={{ fontSize: '.5rem', flexShrink: 0 }}>◆</span>
+//                       <span style={{
+//                         flex: 1, overflow: 'hidden',
+//                         textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+//                         fontStyle: 'italic',
+//                       }}>
+//                         {sp.name}
+//                       </span>
+//                     </button>
+//                   );
+//                 })}
+//               </div>
+//             )}
+//           </div>
+//         );
+//       })}
+//     </div>
+//   );
+// }
+
+// // ─── Sidebar root ──────────────────────────────────────────────────────────────
+
+// export default function Sidebar() {
+//   const { state, dispatch } = useApp();
+
+//   return (
+//     <aside className={`sidebar ${state.sidebarOpen ? 'open' : ''}`}>
+//       <div className="sidebar-header">
+//         <div className="sidebar-subtitle">Browse By</div>
+//         <div className="sidebar-title">Butterfly Families</div>
+//         <button
+//           className="sidebar-close"
+//           onClick={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
+//         >✕</button>
+//       </div>
+
+//       <nav className="sidebar-nav">
+//         <button
+//           onClick={() => {
+//             dispatch({ type: 'SEL_CAT',           v: null });
+//             dispatch({ type: 'SEL_SUBCAT',         v: 'all' });
+//             dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//             dispatch({ type: 'SET_PAGE',           p: 'species' });
+//           }}
+//           className="sidebar-link"
+//           style={{
+//             background: !state.selectedCategory ? 'rgba(82,201,123,.12)' : 'transparent',
+//             borderLeft: !state.selectedCategory ? '3px solid #52c97b' : '3px solid transparent',
+//             color:      !state.selectedCategory ? '#52c97b' : 'var(--text2)',
+//             fontWeight: !state.selectedCategory ? 600 : 400,
+//           }}
+//         >
+//           All Families
+//         </button>
+
+//         {state.categories.map(cat => {
+//           const isActive = state.selectedCategory?.id === cat.id;
+
+//           return (
+//             <div key={cat.id} className="sidebar-family">
+//               <button
+//                 onClick={() => {
+//                   dispatch({ type: 'SEL_CAT',           v: cat });
+//                   dispatch({ type: 'SEL_SUBCAT',         v: 'all' });
+//                   dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+//                   dispatch({ type: 'SET_PAGE',           p: 'species' });
+//                 }}
+//                 className="sidebar-link"
+//                 style={{
+//                   background: isActive && state.selectedSubcat === 'all' && !state.selectedSpeciesFilter
+//                     ? 'rgba(82,201,123,.12)' : 'transparent',
+//                   borderLeft: isActive ? '3px solid #52c97b' : '3px solid transparent',
+//                   color:      isActive ? '#52c97b' : 'var(--text2)',
+//                   fontWeight: isActive ? 600 : 400,
+//                 }}
+//               >
+//                 <span>{cat.name}</span>
+//                 <span style={{ fontSize: '.7rem', color: 'var(--text3)', marginLeft: 'auto' }}>
+//                   {cat.count || 0}
+//                 </span>
+//               </button>
+
+//               {isActive && cat.taxonomyLoading && (
+//                 <div style={{
+//                   padding: '0.5rem 1.2rem', color: 'var(--text3)',
+//                   fontSize: '.73rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
+//                 }}>
+//                   <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⟳</span>
+//                   Loading taxonomy…
+//                 </div>
+//               )}
+
+//               {isActive && cat.taxonomyTree && !cat.taxonomyLoading && (
+//                 <div className="sidebar-subcats" style={{ paddingBottom: '0.5rem' }}>
+//                   {childrenWithImages(cat.taxonomyTree.children || []).map(child => (
+//                     <TaxonNode
+//                       key={child.category}
+//                       node={child}
+//                       depth={0}
+//                       cat={cat}
+//                       ancestorPath={[]}
+//                     />
+//                   ))}
+//                 </div>
+//               )}
+
+//               {isActive && !cat.taxonomyTree && !cat.taxonomyLoading &&
+//                 cat.subcategories &&
+//                 typeof cat.subcategories === 'object' &&
+//                 !Array.isArray(cat.subcategories) && (
+//                 <FlatSubcatList cat={cat} />
+//               )}
+//             </div>
+//           );
+//         })}
+//       </nav>
+
+//       <div className="sidebar-footer">
+//         <div className="sidebar-divider" />
+//         <button className="sidebar-link">Settings ⚙️</button>
+//         <button className="sidebar-link">Help ❓</button>
+//       </div>
+//     </aside>
+//   );
+// }
+
+
+
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-/** A leaf is a species / subspecies: has no further expandable children */
+function formatLabel(category = '') {
+  return category.replace(/_/g, ' ');
+}
+
 function isLeafNode(node) {
   return (
     node.type === 'files' ||
@@ -1170,49 +3659,58 @@ function isLeafNode(node) {
   );
 }
 
-function formatLabel(category = '') {
-  return category.replace(/_/g, ' ');
+function countImagesInSubtree(node) {
+  if (!node) return 0;
+  if (Array.isArray(node.files) && node.files.length > 0) return node.files.length;
+  if (!Array.isArray(node.children) || node.children.length === 0) return 0;
+  return node.children.reduce((sum, c) => sum + countImagesInSubtree(c), 0);
 }
 
-// Per-depth visual config: indent (rem), font-size
+function childrenWithImages(children) {
+  if (!Array.isArray(children)) return [];
+  return children.filter(c => countImagesInSubtree(c) > 0);
+}
+
+/** Collect every file object from this node and all its descendants */
+function collectAllFiles(node) {
+  if (!node) return [];
+  const own = Array.isArray(node.files) ? node.files : [];
+  if (!Array.isArray(node.children) || node.children.length === 0) return own;
+  return own.concat(node.children.flatMap(collectAllFiles));
+}
+
+// Per-depth visual config
 const DEPTH_CONFIG = [
-  { indent: 0.75, fs: '0.88rem' },   // 0 – genus
-  { indent: 1.80, fs: '0.84rem' },   // 1 – species
-  { indent: 2.85, fs: '0.80rem' },   // 2 – subspecies
-  { indent: 3.70, fs: '0.76rem' },   // 3+
+  { indent: 0.75, fs: '0.86rem' },
+  { indent: 1.70, fs: '0.82rem' },
+  { indent: 2.65, fs: '0.78rem' },
+  { indent: 3.50, fs: '0.74rem' },
 ];
 const dc = (depth) => DEPTH_CONFIG[Math.min(depth, DEPTH_CONFIG.length - 1)];
 
-// ─── Recursive tree node ───────────────────────────────────────────────────────
+// ─── Single recursive tree node ───────────────────────────────────────────────
 
 function TaxonNode({ node, depth, cat, ancestorPath }) {
   const { state, dispatch } = useApp();
-
-  // Leaves start collapsed; top-level genus nodes start expanded
   const [expanded, setExpanded] = useState(depth === 0);
 
   const label  = formatLabel(node.category);
   const isLeaf = isLeafNode(node);
 
-  // Build the full breadcrumb path up to this node
+  if (countImagesInSubtree(node) === 0) return null;
+
   const fullPath = [...ancestorPath, { category: node.category, label }];
 
-  // ── Active-state logic ────────────────────────────────────────────────────
-  const activePath   = state.selectedSubcatPath || [];
-  const inActivePath = activePath.some(c => c.category === node.category);
+  const activePath      = state.selectedSubcatPath || [];
+  const inActivePath    = activePath.some(c => c.category === node.category);
+  const isActiveLeaf    = !!state.selectedSpeciesFilter?.path?.includes(node.category);
+  const isActiveNonLeaf =
+    state.selectedSubcat === node.category && !state.selectedSpeciesFilter;
+  const isFullyActive   = isActiveLeaf || isActiveNonLeaf;
+  const isAncestorHit   = inActivePath && !isFullyActive;
 
-  // A leaf is "fully active" when the species filter is set to it
-  const isActiveLeaf = !!state.selectedSpeciesFilter?.path?.includes(node.category);
-
-  // A non-leaf is "fully active" when it's the current subcat AND no species filter overrides it
-  const isActiveNonLeaf = state.selectedSubcat === node.category && !state.selectedSpeciesFilter;
-
-  const isFullyActive  = isActiveLeaf || isActiveNonLeaf;
-  const isAncestorHit  = inActivePath && !isFullyActive;
-
-  // ── Colours ───────────────────────────────────────────────────────────────
-  const color  = isFullyActive ? '#52c97b' : isAncestorHit ? '#3a9960' : 'var(--text3)';
-  const bgColor = isFullyActive
+  const color      = isFullyActive ? '#52c97b' : isAncestorHit ? '#3a9960' : 'var(--text3)';
+  const bgColor    = isFullyActive
     ? 'rgba(82,201,123,.13)'
     : isAncestorHit
     ? 'rgba(82,201,123,.05)'
@@ -1221,43 +3719,56 @@ function TaxonNode({ node, depth, cat, ancestorPath }) {
     ? '2px solid rgba(82,201,123,.6)'
     : '2px solid transparent';
 
-  // ── Click handler ─────────────────────────────────────────────────────────
   const handleClick = () => {
-    // Make sure the right top-level family is selected
     if (state.selectedCategory?.id !== cat.id) {
       dispatch({ type: 'SEL_CAT', v: cat });
     }
     dispatch({ type: 'SET_PAGE', p: 'species' });
+    dispatch({ type: 'SEL_SUBCAT_PATH', category: node.category, path: fullPath });
 
     if (isLeaf) {
-      // Try to resolve the matching species object so SpeciesPage can show it
-      const allSpecies =
-        typeof cat.subcategories === 'object' && !Array.isArray(cat.subcategories)
+      const allSpecies = Array.isArray(cat.species)
+        ? cat.species
+        : typeof cat.subcategories === 'object' && !Array.isArray(cat.subcategories)
           ? Object.values(cat.subcategories).flat()
-          : cat.species || [];
+          : [];
 
-      const matches = allSpecies.filter(s => Array.isArray(s.path) && s.path.includes(node.category));
+      const matches = allSpecies.filter(
+        s => Array.isArray(s.path) && s.path.includes(node.category)
+      );
 
-      // Always push the full path so breadcrumbs stay correct
-      dispatch({ type: 'SEL_SUBCAT_PATH', category: node.category, path: fullPath });
+      const base = matches.length === 1 ? matches[0] : {};
 
-      if (matches.length === 1) {
-        // Exactly one species → select it directly
-        dispatch({ type: 'SEL_SPECIES_FILTER', v: matches[0] });
-      } else {
-        // Zero or multiple matches → clear filter, let path-based grid show all
-        dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
-      }
+      // Collect all files from this node AND all its descendants
+      const allFiles = collectAllFiles(node);
+
+      const synthetic = {
+        id:          base.id          || node.category,
+        name:        base.name        || formatLabel(node.category),
+        scientific:  base.scientific  || formatLabel(node.category),
+        family:      base.family      || cat.name,
+        description: base.description || '',
+        region:      base.region      || '',
+        status:      base.status      || '',
+        subcategory: base.subcategory || '',
+        wingspan:    base.wingspan    || '',
+        path:        fullPath.map(p => p.category),
+        _images:     allFiles,
+        imageUrl:    allFiles[0]?.file_url ?? base.imageUrl ?? null,
+      };
+
+      dispatch({ type: 'SEL_SPECIES_FILTER', v: synthetic });
+
     } else {
-      // Non-leaf: toggle expand + navigate
       setExpanded(e => !e);
-      dispatch({ type: 'SEL_SUBCAT_PATH', category: node.category, path: fullPath });
-      // Clear any previous species filter so the grid shows all children
       dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
     }
   };
 
   const { indent, fs } = dc(depth);
+  const imgCount = isLeaf
+    ? (node.files?.length ?? 0)
+    : countImagesInSubtree(node);
 
   return (
     <div>
@@ -1279,11 +3790,9 @@ function TaxonNode({ node, depth, cat, ancestorPath }) {
           textAlign: 'left',
           lineHeight: 1.45,
           transition: 'background 0.12s, color 0.12s',
-          /* mirror the app's sidebar-sublink reset so hover still works */
           fontFamily: 'inherit',
         }}
       >
-        {/* Expand / leaf indicator */}
         <span style={{
           flexShrink: 0,
           width: '0.7rem',
@@ -1295,7 +3804,6 @@ function TaxonNode({ node, depth, cat, ancestorPath }) {
           {isLeaf ? '◆' : expanded ? '▾' : '▸'}
         </span>
 
-        {/* Label */}
         <span style={{
           flex: 1,
           overflow: 'hidden',
@@ -1306,28 +3814,19 @@ function TaxonNode({ node, depth, cat, ancestorPath }) {
           {label}
         </span>
 
-        {/* Count badge (non-leaf, depth 0 only to avoid clutter) */}
-        {!isLeaf && depth === 0 && node.count > 0 && (
-          <span style={{
-            flexShrink: 0,
-            fontSize: '0.6rem',
-            color: 'var(--text3)',
-            background: 'var(--bg3)',
-            padding: '0.1rem 0.35rem',
-            borderRadius: 4,
-          }}>
-            {node.count}
-          </span>
-        )}
+        {/* Numbers only shown on main family level in Sidebar root, not here */}
       </button>
 
-      {/* Children */}
       {!isLeaf && expanded && Array.isArray(node.children) && node.children.length > 0 && (
         <div style={{
-          borderLeft: `1px solid ${isFullyActive || isAncestorHit ? 'rgba(82,201,123,.22)' : 'var(--border)'}`,
+          borderLeft: `1px solid ${
+            isFullyActive || isAncestorHit
+              ? 'rgba(82,201,123,.22)'
+              : 'var(--border)'
+          }`,
           marginLeft: `${indent + 0.15}rem`,
         }}>
-          {node.children.map(child => (
+          {childrenWithImages(node.children).map(child => (
             <TaxonNode
               key={child.category}
               node={child}
@@ -1342,7 +3841,7 @@ function TaxonNode({ node, depth, cat, ancestorPath }) {
   );
 }
 
-// ─── Flat-subcategory species list (fallback when no taxonomyTree) ─────────────
+// ─── Flat-subcategory fallback ─────────────────────────────────────────────────
 
 function FlatSubcatList({ cat }) {
   const { state, dispatch } = useApp();
@@ -1351,10 +3850,8 @@ function FlatSubcatList({ cat }) {
     <div className="sidebar-subcats">
       {Object.entries(cat.subcategories).map(([sub, species]) => {
         const isOpen = state.selectedSubcat === sub;
-
         return (
           <div key={sub}>
-            {/* Subcategory row */}
             <button
               onClick={() => {
                 dispatch({ type: 'SEL_SUBCAT', v: sub });
@@ -1379,12 +3876,8 @@ function FlatSubcatList({ cat }) {
               </span>
             </button>
 
-            {/* Species under this subcategory */}
             {isOpen && species.length > 0 && (
-              <div style={{
-                borderLeft: '1px solid var(--border)',
-                marginLeft: '0.9rem',
-              }}>
+              <div style={{ borderLeft: '1px solid var(--border)', marginLeft: '0.9rem' }}>
                 {species.map(sp => {
                   const isSel = state.selectedSpeciesFilter?.id === sp.id;
                   return (
@@ -1405,10 +3898,8 @@ function FlatSubcatList({ cat }) {
                     >
                       <span style={{ fontSize: '.5rem', flexShrink: 0 }}>◆</span>
                       <span style={{
-                        flex: 1,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
+                        flex: 1, overflow: 'hidden',
+                        textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         fontStyle: 'italic',
                       }}>
                         {sp.name}
@@ -1425,52 +3916,46 @@ function FlatSubcatList({ cat }) {
   );
 }
 
-// ─── Sidebar ──────────────────────────────────────────────────────────────────
+// ─── Sidebar root ──────────────────────────────────────────────────────────────
 
 export default function Sidebar() {
   const { state, dispatch } = useApp();
 
   return (
     <aside className={`sidebar ${state.sidebarOpen ? 'open' : ''}`}>
-      {/* Header */}
       <div className="sidebar-header">
         <div className="sidebar-subtitle">Browse By</div>
         <div className="sidebar-title">Butterfly Families</div>
         <button
           className="sidebar-close"
           onClick={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
-        >
-          ✕
-        </button>
+        >✕</button>
       </div>
 
       <nav className="sidebar-nav">
-        {/* ── All Families ── */}
         <button
           onClick={() => {
-            dispatch({ type: 'SEL_CAT',            v: null });
-            dispatch({ type: 'SEL_SUBCAT',          v: 'all' });
-            dispatch({ type: 'SEL_SPECIES_FILTER',  v: null });
-            dispatch({ type: 'SET_PAGE',            p: 'species' });
+            dispatch({ type: 'SEL_CAT',           v: null });
+            dispatch({ type: 'SEL_SUBCAT',         v: 'all' });
+            dispatch({ type: 'SEL_SPECIES_FILTER', v: null });
+            dispatch({ type: 'SET_PAGE',           p: 'species' });
           }}
           className="sidebar-link"
           style={{
-            background:  !state.selectedCategory ? 'rgba(82,201,123,.12)' : 'transparent',
-            borderLeft:  !state.selectedCategory ? '3px solid #52c97b' : '3px solid transparent',
-            color:       !state.selectedCategory ? '#52c97b' : 'var(--text2)',
-            fontWeight:  !state.selectedCategory ? 600 : 400,
+            background: !state.selectedCategory ? 'rgba(82,201,123,.12)' : 'transparent',
+            borderLeft: !state.selectedCategory ? '3px solid #52c97b' : '3px solid transparent',
+            color:      !state.selectedCategory ? '#52c97b' : 'var(--text2)',
+            fontWeight: !state.selectedCategory ? 600 : 400,
           }}
         >
           All Families
         </button>
 
-        {/* ── One block per family ── */}
         {state.categories.map(cat => {
           const isActive = state.selectedCategory?.id === cat.id;
 
           return (
             <div key={cat.id} className="sidebar-family">
-              {/* Family heading row */}
               <button
                 onClick={() => {
                   dispatch({ type: 'SEL_CAT',           v: cat });
@@ -1481,8 +3966,7 @@ export default function Sidebar() {
                 className="sidebar-link"
                 style={{
                   background: isActive && state.selectedSubcat === 'all' && !state.selectedSpeciesFilter
-                    ? 'rgba(82,201,123,.12)'
-                    : 'transparent',
+                    ? 'rgba(82,201,123,.12)' : 'transparent',
                   borderLeft: isActive ? '3px solid #52c97b' : '3px solid transparent',
                   color:      isActive ? '#52c97b' : 'var(--text2)',
                   fontWeight: isActive ? 600 : 400,
@@ -1494,25 +3978,19 @@ export default function Sidebar() {
                 </span>
               </button>
 
-              {/* Loading spinner */}
               {isActive && cat.taxonomyLoading && (
                 <div style={{
-                  padding: '0.5rem 1.2rem',
-                  color: 'var(--text3)',
-                  fontSize: '.73rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
+                  padding: '0.5rem 1.2rem', color: 'var(--text3)',
+                  fontSize: '.73rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
                 }}>
                   <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⟳</span>
                   Loading taxonomy…
                 </div>
               )}
 
-              {/* ── Taxonomy tree from API ── */}
               {isActive && cat.taxonomyTree && !cat.taxonomyLoading && (
                 <div className="sidebar-subcats" style={{ paddingBottom: '0.5rem' }}>
-                  {(cat.taxonomyTree.children || []).map(child => (
+                  {childrenWithImages(cat.taxonomyTree.children || []).map(child => (
                     <TaxonNode
                       key={child.category}
                       node={child}
@@ -1524,7 +4002,6 @@ export default function Sidebar() {
                 </div>
               )}
 
-              {/* ── Flat fallback (old object-based subcategories) ── */}
               {isActive && !cat.taxonomyTree && !cat.taxonomyLoading &&
                 cat.subcategories &&
                 typeof cat.subcategories === 'object' &&
@@ -1538,8 +4015,8 @@ export default function Sidebar() {
 
       <div className="sidebar-footer">
         <div className="sidebar-divider" />
-        <button className="sidebar-link">Settings ⚙️</button>
-        <button className="sidebar-link">Help ❓</button>
+        {/* <button className="sidebar-link">Settings ⚙️</button>
+        <button className="sidebar-link">Help ❓</button> */}
       </div>
     </aside>
   );
