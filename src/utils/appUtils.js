@@ -1,10 +1,6 @@
-
-
 export function wikiImageUrl(imgName, width = 400, height = null) {
   if (!imgName) return null;
-
   const sizeParam = height ? `width=${width}&height=${height}` : `width=${width}`;
-
   if (imgName.startsWith('http')) {
     if (imgName.includes('commons.wikimedia.org')) {
       if (imgName.includes('/wiki/File:')) {
@@ -24,11 +20,9 @@ export function wikiImageUrl(imgName, width = 400, height = null) {
     }
     return imgName;
   }
-
   return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(imgName)}?${sizeParam}`;
 }
 
-// ─── Known Indian state/UT names ─────────────────────────────────────────────
 const INDIA_STATE_NAMES = new Set([
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
   'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
@@ -40,7 +34,6 @@ const INDIA_STATE_NAMES = new Set([
   'Dadra and Nagar Haveli', 'Daman and Diu', 'Lakshadweep',
 ]);
 
-// ─── Known Bhutan district names ─────────────────────────────────────────────
 const BHUTAN_DISTRICT_MAP = {
   'Zhemgang_District':         'Zhemgang District',
   'Trashigang_District':       'Trashigang District',
@@ -56,7 +49,6 @@ const BHUTAN_DISTRICT_KEYS = new Set(
   Object.keys(BHUTAN_DISTRICT_MAP).map(k => k.toLowerCase())
 );
 
-// ─── State bounding boxes ─────────────────────────────────────────────────────
 const STATE_BOUNDS = {
   'Andhra Pradesh':              { minLat: 12.62080, maxLat: 19.90820, minLng: 76.76230, maxLng: 84.81820 },
   'Arunachal Pradesh':           { minLat: 26.63420, maxLat: 29.46730, minLng: 91.51580, maxLng: 97.41220 },
@@ -97,7 +89,6 @@ const STATE_BOUNDS = {
   'Lakshadweep':                 { minLat:  8.00580, maxLat: 12.01580, minLng: 71.74580, maxLng: 74.12580 },
 };
 
-// ─── Bhutan district bounding boxes ──────────────────────────────────────────
 const BHUTAN_DISTRICT_BOUNDS = {
   'Zhemgang District':         { minLat: 27.01280, maxLat: 27.79580, minLng: 90.51280, maxLng: 91.28580 },
   'Trashigang District':       { minLat: 27.07580, maxLat: 27.68580, minLng: 91.48580, maxLng: 92.12580 },
@@ -110,7 +101,6 @@ const BHUTAN_DISTRICT_BOUNDS = {
   'Dochula Pass':              { minLat: 27.41580, maxLat: 27.68580, minLng: 89.72580, maxLng: 90.08580 },
 };
 
-// ─── Coordinate validator ─────────────────────────────────────────────────────
 function isValidRegionCoord(lat, lng) {
   const la = Number(lat);
   const lo = Number(lng);
@@ -124,24 +114,18 @@ function isValidRegionCoord(lat, lng) {
   );
 }
 
-// ─── State / district bounds validator ───────────────────────────────────────
 function isCoordInState(lat, lng, state, district) {
   if (state && STATE_BOUNDS[state]) {
     const b = STATE_BOUNDS[state];
-    if (lat < b.minLat || lat > b.maxLat || lng < b.minLng || lng > b.maxLng) {
-      return false;
-    }
+    if (lat < b.minLat || lat > b.maxLat || lng < b.minLng || lng > b.maxLng) return false;
   }
   if (district && BHUTAN_DISTRICT_BOUNDS[district]) {
     const b = BHUTAN_DISTRICT_BOUNDS[district];
-    if (lat < b.minLat || lat > b.maxLat || lng < b.minLng || lng > b.maxLng) {
-      return false;
-    }
+    if (lat < b.minLat || lat > b.maxLat || lng < b.minLng || lng > b.maxLng) return false;
   }
   return true;
 }
 
-// ─── Sighting data validator ──────────────────────────────────────────────────
 function isValidSightingData(f, country, state) {
   const fileName = (f.file_name || f.img_name || '').trim();
   if (!fileName) return false;
@@ -150,31 +134,24 @@ function isValidSightingData(f, country, state) {
   return true;
 }
 
-// ─── resolveLocationFromPath ──────────────────────────────────────────────────
 function resolveLocationFromPath(categoryPath) {
   let country  = '';
   let state    = '';
   let district = '';
-
   for (const cat of categoryPath) {
     if (!cat) continue;
-
     const raw = cat.startsWith('WLB_') ? cat.replace(/^WLB_/, '') : cat;
-
     if (raw === 'India')  { country = 'India';  continue; }
     if (raw === 'Bhutan') { country = 'Bhutan'; continue; }
-
     const asState = raw.replace(/_/g, ' ');
     if (INDIA_STATE_NAMES.has(asState)) {
       if (!country) country = 'India';
       state = asState;
       continue;
     }
-
     const rawLower = raw.toLowerCase();
     if (BHUTAN_DISTRICT_KEYS.has(rawLower)) {
-      const key = Object.keys(BHUTAN_DISTRICT_MAP)
-        .find(k => k.toLowerCase() === rawLower);
+      const key = Object.keys(BHUTAN_DISTRICT_MAP).find(k => k.toLowerCase() === rawLower);
       if (key) {
         district = BHUTAN_DISTRICT_MAP[key];
         if (!country) country = 'Bhutan';
@@ -182,17 +159,13 @@ function resolveLocationFromPath(categoryPath) {
       continue;
     }
   }
-
   return { country, state, district };
 }
 
-// ─── _buildSighting ───────────────────────────────────────────────────────────
 function _buildSighting(f, lat, lng, category, fullPath = []) {
   const { country, state, district } = resolveLocationFromPath(fullPath);
-
   const fileName    = f.file_name || f.img_name || '';
   const displayName = fileName.replace(/_/g, ' ').replace(/\.(jpg|jpeg|png|webp)$/i, '');
-
   return {
     id:         `wlb-${fileName || Math.random()}`,
     species:    displayName || category.replace(/_/g, ' '),
@@ -203,60 +176,43 @@ function _buildSighting(f, lat, lng, category, fullPath = []) {
     district,
     lat,
     lng,
-    date:       f.upload_timestamp
-                  ? `${f.upload_timestamp.slice(0,4)}-${f.upload_timestamp.slice(4,6)}-${f.upload_timestamp.slice(6,8)}`
-                  : '',
+    date: f.upload_timestamp
+      ? `${f.upload_timestamp.slice(0,4)}-${f.upload_timestamp.slice(4,6)}-${f.upload_timestamp.slice(6,8)}`
+      : '',
     confidence: 'Confirmed',
-    imageUrl:   f.file_url ? wikiImageUrl(f.file_url, 400) : wikiImageUrl(fileName, 400),
+    imageUrl:   wikiImageUrl(f.file_url || f.file_name || f.img_name, 400),
     family:     category,
   };
 }
 
-// ─── _traverseTree ────────────────────────────────────────────────────────────
 function _traverseTree(rootNode, rootCategory, sightings, onProgress) {
   let rejectedCount = 0;
-
   const stack = [{
     node:         rootNode,
     category:     rootNode?.category || rootCategory,
     ancestorPath: [],
   }];
-
   while (stack.length) {
     const { node, category, ancestorPath } = stack.pop();
     if (!node || typeof node !== 'object') continue;
-
     const currentCategory = node.category || category;
     const currentPath     = [...ancestorPath, currentCategory];
-
     for (const f of (node.files || [])) {
       const rawLat = f.latitude  ?? f.lat  ?? null;
       const rawLng = f.longitude ?? f.lng  ?? null;
       const lat    = rawLat === null || rawLat === '' ? NaN : parseFloat(rawLat);
       const lng    = rawLng === null || rawLng === '' ? NaN : parseFloat(rawLng);
-
       if (!isValidRegionCoord(lat, lng)) continue;
-
       const { country, state, district } = resolveLocationFromPath(currentPath);
-
       if (!isValidSightingData(f, country, state)) continue;
-
       if (!isCoordInState(lat, lng, state, district)) {
         rejectedCount++;
-        console.warn(
-          `[bounds-reject] "${f.file_name}" tagged as "${state || district}" ` +
-          `but coords (${lat}, ${lng}) are outside bounds`
-        );
+        console.warn(`[bounds-reject] "${f.file_name}" tagged as "${state || district}" but coords (${lat}, ${lng}) are outside bounds`);
         continue;
       }
-
       sightings.push(_buildSighting(f, lat, lng, currentCategory, currentPath));
-
-      if (onProgress && sightings.length % 50 === 0) {
-        onProgress(sightings.length);
-      }
+      if (onProgress && sightings.length % 50 === 0) onProgress(sightings.length);
     }
-
     for (const child of (node.children || [])) {
       stack.push({
         node:         child,
@@ -265,23 +221,32 @@ function _traverseTree(rootNode, rootCategory, sightings, onProgress) {
       });
     }
   }
-
   return rejectedCount;
+}
+
+// ─── Base URL ─────────────────────────────────────────────────────────────────
+const API_BASE = 'https://wlbapi.toolforge.org';
+
+// ─── Unwrap API response ──────────────────────────────────────────────────────
+// The tree-search API returns { result: {...} } — NOT { data: {...} }.
+// The subtree API may differ. This helper tries all known wrapper keys.
+function unwrapResponse(json) {
+  return json?.result ?? json?.data ?? json;
 }
 
 // ─── fetchWLBIndiaSightings ───────────────────────────────────────────────────
 export async function fetchWLBIndiaSightings(onProgress) {
   const [indiaRes, bhutanRes] = await Promise.allSettled([
-    fetch('https://wlbapi.toolforge.org/api/wlb/taxonomy/tree-search?category=WLB_India'),
-    fetch('https://wlbapi.toolforge.org/api/wlb/taxonomy/tree-search?category=WLB_Bhutan'),
+    fetch(`${API_BASE}/api/wlb/taxonomy/tree-search?category=WLB_India`),
+    fetch(`${API_BASE}/api/wlb/taxonomy/tree-search?category=WLB_Bhutan`),
   ]);
 
   const sightings     = [];
   let   rejectedCount = 0;
 
   if (indiaRes.status === 'fulfilled' && indiaRes.value.ok) {
-    const indiaData = await indiaRes.value.json();
-    const indiaRoot = indiaData?.result || indiaData;
+    const json      = await indiaRes.value.json();
+    const indiaRoot = unwrapResponse(json);
     rejectedCount += _traverseTree(indiaRoot, 'WLB_India', sightings, onProgress);
     console.log(`[WLB] India sightings: ${sightings.length}`);
   } else {
@@ -291,23 +256,19 @@ export async function fetchWLBIndiaSightings(onProgress) {
   const afterIndia = sightings.length;
 
   if (bhutanRes.status === 'fulfilled' && bhutanRes.value.ok) {
-    const bhutanData = await bhutanRes.value.json();
-    const bhutanRoot = bhutanData?.result || bhutanData;
+    const json       = await bhutanRes.value.json();
+    const bhutanRoot = unwrapResponse(json);
     rejectedCount += _traverseTree(bhutanRoot, 'WLB_Bhutan', sightings, onProgress);
     console.log(`[WLB] Bhutan sightings added: ${sightings.length - afterIndia}`);
   } else {
     console.error('[WLB] Bhutan fetch failed:', bhutanRes.reason ?? bhutanRes.value?.status);
   }
 
-  if (onProgress && sightings.length % 50 !== 0) {
-    onProgress(sightings.length);
-  }
-
+  if (onProgress && sightings.length % 50 !== 0) onProgress(sightings.length);
   console.log(`[WLB] total: ${sightings.length} valid | ${rejectedCount} bounds-rejected`);
   return sightings;
 }
 
-// ─── buildSightingsFromFeatured ───────────────────────────────────────────────
 export function buildSightingsFromFeatured(featuredImages) {
   return featuredImages
     .filter(f => f.display_name && f.display_name.trim())
@@ -319,16 +280,14 @@ export function buildSightingsFromFeatured(featuredImages) {
       country:    'India',
       state:      '',
       district:   '',
-      date:       f.upload_timestamp
-                    ? `${f.upload_timestamp.slice(0,4)}-${f.upload_timestamp.slice(4,6)}-${f.upload_timestamp.slice(6,8)}`
-                    : '',
+      date: f.upload_timestamp
+        ? `${f.upload_timestamp.slice(0,4)}-${f.upload_timestamp.slice(4,6)}-${f.upload_timestamp.slice(6,8)}`
+        : '',
       confidence: 'Confirmed',
-      imageUrl:   f.file_url ? wikiImageUrl(f.file_url, 400) : wikiImageUrl(f.img_name, 400),
+      imageUrl:   wikiImageUrl(f.file_url || f.img_name, 400),
       family:     '',
     }));
 }
-
-// ─── Family metadata ──────────────────────────────────────────────────────────
 
 export const FAMILY_META = [
   { name: 'Papilionidae', common: 'Swallowtails',     color: '#f59e0b', description: 'The largest and most spectacular butterflies, known for tail-like hindwing extensions and brilliant coloration.' },
@@ -350,13 +309,11 @@ export const STATIC_TEAM = [
   { id:'t6', name:'Dr. Vikram Pillai',   role:'Taxonomist & Systematist',      dept:'Research',     initials:'VP', color:'#34d399', experience:18, publications:63, fieldTrips:120, species_described:7, bio:'Specialist in Papilionidae systematics.',                         education:'PhD Zoology, University of Kerala',    specialization:'Molecular Systematics, Phylogenetics',    awards:['BNHS Gold Medal 2017'],          social:{ email:'vikram@butterfly.in' } },
 ];
 
-// ─── API fetch functions ──────────────────────────────────────────────────────
-
 export async function fetchSpeciesImages(scientificName) {
   const param = scientificName.trim().replace(/ /g, '_');
   try {
     const response = await fetch(
-      `https://wlbapi.toolforge.org/api/wlb/images-by-species?species=${encodeURIComponent(param)}`
+      `${API_BASE}/api/wlb/images-by-species?species=${encodeURIComponent(param)}`
     );
     if (!response.ok) return [];
     const data = await response.json();
@@ -368,7 +325,7 @@ export async function fetchSpeciesImages(scientificName) {
 }
 
 export async function fetchFeaturedImages() {
-  const response = await fetch('https://wlbapi.toolforge.org/api/wlb/images-by-type?type=feature');
+  const response = await fetch(`${API_BASE}/api/wlb/images-by-type?type=feature`);
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const data = await response.json();
   return (data?.files || []).map(f => ({
@@ -385,143 +342,109 @@ export async function fetchFeaturedImages() {
   }));
 }
 
-// ─── Taxonomy helpers ─────────────────────────────────────────────────────────
-
-export async function fetchTaxonomyTree(familyName) {
+// ─── fetchFamilySubtree ───────────────────────────────────────────────────────
+// Uses /taxonomy/subtree — returns structure only, no files.
+export async function fetchFamilySubtree(familyName) {
   const response = await fetch(
-    `https://wlbapi.toolforge.org/api/wlb/taxonomy/tree-search?category=${encodeURIComponent(familyName)}`
+    `${API_BASE}/api/wlb/taxonomy/subtree?category=${encodeURIComponent(familyName)}`
   );
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return response.json();
+  const json = await response.json();
+  return unwrapResponse(json);
 }
 
-function isFileLeaf(node) {
-  return node.type === 'files' || (Array.isArray(node.files) && node.files.length > 0);
+// ─── fetchTaxonomyDetail ──────────────────────────────────────────────────────
+// Uses /taxonomy/tree-search — returns full tree with files[] on leaf nodes.
+// API shape confirmed from screenshot: { result: { category, children: [...] } }
+// Leaf nodes have: { category, count, files: [{ file_name, file_url, latitude, longitude, upload_timestamp }] }
+export async function fetchTaxonomyDetail(categoryName) {
+  const response = await fetch(
+    `${API_BASE}/api/wlb/taxonomy/tree-search?category=${encodeURIComponent(categoryName)}`
+  );
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const json = await response.json();
+  const node = unwrapResponse(json);
+  console.log(`[fetchTaxonomyDetail] category=${categoryName}`, {
+    topKey:   Object.keys(json)[0],
+    nodeCategory: node?.category,
+    childCount:   node?.children?.length ?? 0,
+  });
+  return node;
 }
 
-function allChildrenAreFileLeaves(node) {
-  return Array.isArray(node.children) &&
-    node.children.length > 0 &&
-    node.children.every(isFileLeaf);
+// ─── collectAllFilesFromTree ──────────────────────────────────────────────────
+// Recursively collects every file object from the tree-search result.
+// Each file is tagged with its leaf node's category so cards can use it as
+// the species name instead of the raw file_name.
+export function collectAllFilesFromTree(node) {
+  if (!node || typeof node !== 'object') return [];
+
+  const children = Array.isArray(node.children) ? node.children : [];
+  const ownFiles = Array.isArray(node.files) ? node.files : [];
+
+  // Tag each file with the node's category (= species name for leaf nodes)
+  const tagged = ownFiles.map(f => ({
+    ...f,
+    _nodeCategory: node.category || '',
+  }));
+
+  const childFiles = children.flatMap(child => collectAllFilesFromTree(child));
+  return [...tagged, ...childFiles];
 }
 
-export function extractSpeciesFromTree(treeResult) {
-  const species = [];
+// ─── collectLeafSpeciesFromTree ───────────────────────────────────────────────
+// Collects one entry per LEAF NODE (species), each with all its files grouped.
+// This is what SpeciesPage uses to build one card per species, not one per photo.
+//
+// Leaf node shape from API:
+//   { category: "Byasa_dasarada_dasarada", count: 4, files: [...], children: [] }
+//
+export function collectLeafSpeciesFromTree(node) {
+  if (!node || typeof node !== 'object') return [];
 
-  const stack = [{ node: treeResult, path: [] }];
-  while (stack.length) {
-    const { node, path } = stack.pop();
-    if (!node) continue;
+  const children = Array.isArray(node.children) ? node.children : [];
+  const ownFiles = Array.isArray(node.files)    ? node.files    : [];
 
-    if (isFileLeaf(node) && !Array.isArray(node.children)) {
-      species.push({
-        scientific:  node.category,
-        name:        node.category.replace(/_/g, ' '),
-        subcategory: path[0] || null,
-        genus:       path[1] || null,
-        path:        [...path, node.category],
-        images:      (node.files || []).map(f => ({
-          img_name:         f.file_name,
-          file_url:         f.file_url,
-          upload_timestamp: f.upload_timestamp,
-        })),
-      });
-      continue;
-    }
+  // A node is a leaf when it has files OR has no children
+  const isLeaf = ownFiles.length > 0 || children.length === 0;
 
-    if (allChildrenAreFileLeaves(node)) {
-      const images = (node.children || []).flatMap(c =>
-        (c.files || []).map(f => ({
-          img_name:         f.file_name,
-          file_url:         f.file_url,
-          upload_timestamp: f.upload_timestamp,
-        }))
-      );
-      species.push({
-        scientific:  node.category,
-        name:        node.category.replace(/_/g, ' '),
-        subcategory: path[0] || null,
-        genus:       path[1] || null,
-        path:        [...path, node.category],
-        images,
-      });
-      continue;
-    }
-
-    if (Array.isArray(node.children)) {
-      for (let i = node.children.length - 1; i >= 0; i--) {
-        stack.push({ node: node.children[i], path: [...path, node.category] });
-      }
-    }
+  if (isLeaf && ownFiles.length > 0) {
+    return [{
+      category: node.category || '',
+      count:    node.count    || ownFiles.length,
+      files:    ownFiles,
+    }];
   }
 
-  return species;
+  // Non-leaf: recurse into children
+  return children.flatMap(child => collectLeafSpeciesFromTree(child));
+}
+
+export function countSubtreeNodes(node) {
+  if (!node) return 0;
+  const children = Array.isArray(node.children) ? node.children : [];
+  if (children.length === 0) return 1;
+  return children.reduce((sum, c) => sum + countSubtreeNodes(c), 0);
 }
 
 export function buildBaseCategories() {
   return FAMILY_META.map((fam, fi) => ({
-    id:              `cat-${fi + 1}`,
-    name:            fam.name,
-    common:          fam.common,
-    color:           fam.color,
-    description:     fam.description,
-    count:           0,
-    conserved:       0,
-    endangered:      0,
-    subcategories:   [],
-    species:         [],
-    taxonomyTree:    null,
-    taxonomyLoading: false,
+    id:             `cat-${fi + 1}`,
+    name:           fam.name,
+    common:         fam.common,
+    color:          fam.color,
+    description:    fam.description,
+    subtreeNode:    null,
+    subtreeLoading: false,
+    subtreeError:   null,
   }));
 }
 
-export async function loadFamilyTaxonomy(familyName, fi) {
-  const fam        = FAMILY_META[fi];
-  const treeData   = await fetchTaxonomyTree(familyName);
-  const treeResult = treeData?.result || null;
-  const speciesDefs = extractSpeciesFromTree(treeResult);
-
-  const species = speciesDefs.map((sp, si) => {
-    const firstImg = sp.images[0];
-    let imageUrl   = null;
-    if (firstImg?.file_url)      imageUrl = wikiImageUrl(firstImg.file_url, 400);
-    else if (firstImg?.img_name) imageUrl = wikiImageUrl(firstImg.img_name, 400);
-
-    return {
-      id:          `sp-${fi}-${si}`,
-      name:        sp.name,
-      scientific:  sp.name,
-      subcategory: sp.subcategory,
-      genus:       sp.genus,
-      path:        sp.path,
-      color:       fam.color,
-      lat:         8  + ((fi * 37 + si * 13) % 28),
-      lng:         68 + ((fi * 17 + si * 11) % 29),
-      description: `${sp.name} — a member of ${familyName}.${sp.subcategory ? ` Subfamily: ${sp.subcategory}.` : ''}`,
-      imageUrl,
-      _images:     sp.images,
-    };
-  });
-
-  return {
-    count:         species.length,
-    conserved:     Math.round(species.length * 0.4),
-    endangered:    0,
-    subcategories: [...new Set(species.map(s => s.subcategory).filter(Boolean))],
-    species,
-    taxonomyTree:  treeResult,
-  };
-}
-
-// ─── Stats ────────────────────────────────────────────────────────────────────
-
 export async function fetchStats() {
-  const response = await fetch('https://wlbapi.toolforge.org/api/wlb/project-info');
+  const response = await fetch(`${API_BASE}/api/wlb/project-info`);
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const json = await response.json();
-
   const d = json?.data ?? {};
-
   return {
     imagesUploaded:   d.images_uploaded_so_far   ?? d.total_files              ?? null,
     speciesTotal:     null,

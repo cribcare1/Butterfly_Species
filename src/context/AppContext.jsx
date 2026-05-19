@@ -9,8 +9,10 @@ import {
   fetchFeaturedImages,
   fetchWLBIndiaSightings,
   fetchSpeciesImages,
+  fetchFamilySubtree,
+  fetchTaxonomyDetail,
+  collectAllFilesFromTree,
   buildBaseCategories,
-  loadFamilyTaxonomy,
 } from '../utils/appUtils';
 
 export { wikiImageUrl, fetchSpeciesImages, fetchFeaturedImages } from '../utils/appUtils';
@@ -22,15 +24,23 @@ const initialState = {
   theme:                 (() => { try { return localStorage.getItem('bf-theme') || 'dark'; } catch { return 'dark'; } })(),
   mobileMenu:            false,
   sidebarOpen:           false,
+
   categories:            [],
+  familiesLoadingCount:  TOTAL_FAMILIES,
+
   selectedCategory:      null,
   selectedSubcat:        'all',
   selectedSubcatPath:    [],
   selectedSpeciesFilter: null,
   selectedSpecies:       null,
+
+  taxonomyDetail:        null,
+  taxonomyDetailFiles:   [],
+  taxonomyDetailLoading: false,
+  taxonomyDetailError:   null,
+  taxonomyDetailCategory: null,
+
   search:                '',
-  catLoading:            false,
-  familiesLoadingCount:  TOTAL_FAMILIES,
   team:                  [],
   teamLoading:           false,
   selectedMember:        null,
@@ -41,26 +51,24 @@ const initialState = {
   sightingsError:        null,
   mapFilter:             { country: 'India', region: 'All' },
   taxonExpanded:         {},
+
   speciesImages:         [],
   speciesImagesLoading:  false,
   speciesImagesError:    null,
-  taxonomyData:          null,
-  taxonomyLoading:       false,
-  taxonomyError:         null,
+
   featuredImages:        [],
   featuredImagesLoading: false,
   featuredImagesError:   null,
 };
 
 function reducer(state, action) {
-  // Debug logging for selection changes
   if (['SEL_CAT', 'SEL_SUBCAT', 'SEL_SUBCAT_PATH', 'SEL_SPECIES_FILTER', 'SET_PAGE'].includes(action.type)) {
     console.log(`\n📍 [${action.type}]`, {
-      category: action.v?.name || action.category || '—',
-      subcat: action.v === 'all' ? 'all' : action.v,
-      path: action.path || '—',
-      speciesFilter: action.v?.name || '—',
-      page: action.p || '—',
+      category:      action.v?.name || action.category || '—',
+      subcat:        action.v === 'all' ? 'all' : action.v,
+      path:          action.path || '—',
+      speciesFilter: action.v?.category || '—',
+      page:          action.p || '—',
     });
   }
 
@@ -81,8 +89,10 @@ function reducer(state, action) {
     case 'SET_SEARCH':  newState = { ...state, search: action.v }; break;
     case 'STATS_LOAD':  newState = { ...state, statsLoading: true }; break;
     case 'STATS_OK':    newState = { ...state, statsLoading: false, stats: action.v }; break;
-    case 'CAT_LOAD':    newState = { ...state, catLoading: true }; break;
-    case 'CAT_OK':      newState = { ...state, catLoading: false, categories: action.v }; break;
+
+    case 'CAT_OK':
+      newState = { ...state, categories: action.v };
+      break;
 
     case 'RESET_FAMILIES_COUNT':
       newState = { ...state, familiesLoadingCount: action.count };
@@ -95,10 +105,14 @@ function reducer(state, action) {
         selectedSubcat:        'all',
         selectedSubcatPath:    [],
         selectedSpecies:       null,
+        selectedSpeciesFilter: null,
         speciesImages:         [],
         speciesImagesError:    null,
-        taxonomyData:          null,
-        taxonomyError:         null,
+        // FIX: always clear detail when switching family so stale data is never shown
+        taxonomyDetail:        null,
+        taxonomyDetailFiles:   [],
+        taxonomyDetailError:   null,
+        taxonomyDetailCategory: null,
       };
       break;
 
@@ -122,16 +136,92 @@ function reducer(state, action) {
       };
       break;
 
-    case 'SEL_SPECIES_FILTER': newState = { ...state, selectedSpeciesFilter: action.v }; break;
+    case 'SEL_SPECIES_FILTER':
+      newState = {
+        ...state,
+        selectedSpeciesFilter: action.v,
+        // FIX: always clear stale detail so the effect always re-fetches
+        taxonomyDetail:        null,
+        taxonomyDetailFiles:   [],
+        taxonomyDetailError:   null,
+        taxonomyDetailCategory: action.v?.category || null,
+      };
+      break;
+
     case 'SEL_SPECIES':
       newState = {
         ...state,
         selectedSpecies:      action.v,
         speciesImages:        action.v?._images || [],
-        speciesImagesLoading: !!(action.v && !action.v._images),
+        speciesImagesLoading: !!(action.v && !action.v._images?.length),
         speciesImagesError:   null,
       };
       break;
+
+    case 'TAXON_DETAIL_LOAD':
+      newState = {
+        ...state,
+        taxonomyDetailLoading:  true,
+        taxonomyDetailError:    null,
+        taxonomyDetail:         null,
+        taxonomyDetailFiles:    [],
+        taxonomyDetailCategory: action.category,
+      };
+      break;
+    case 'TAXON_DETAIL_OK':
+      newState = {
+        ...state,
+        taxonomyDetailLoading:  false,
+        taxonomyDetail:         action.node,
+        taxonomyDetailFiles:    action.files,
+        taxonomyDetailCategory: action.category,
+      };
+      break;
+    case 'TAXON_DETAIL_ERR':
+      newState = {
+        ...state,
+        taxonomyDetailLoading: false,
+        taxonomyDetailError:   action.v,
+      };
+      break;
+
+    case 'FAMILY_SUBTREE_LOAD': {
+      const updatedCats = state.categories.map(c =>
+        c.name === action.family ? { ...c, subtreeLoading: true, subtreeError: null } : c
+      );
+      newState = { ...state, categories: updatedCats };
+      break;
+    }
+    case 'FAMILY_SUBTREE_OK': {
+      const updatedCats = state.categories.map(c =>
+        c.name === action.family
+          ? { ...c, subtreeLoading: false, subtreeNode: action.node }
+          : c
+      );
+      newState = {
+        ...state,
+        categories:           updatedCats,
+        familiesLoadingCount: Math.max(0, state.familiesLoadingCount - 1),
+        selectedCategory: state.selectedCategory?.name === action.family
+          ? { ...state.selectedCategory, subtreeLoading: false, subtreeNode: action.node }
+          : state.selectedCategory,
+      };
+      break;
+    }
+    case 'FAMILY_SUBTREE_ERR': {
+      const updatedCats = state.categories.map(c =>
+        c.name === action.family
+          ? { ...c, subtreeLoading: false, subtreeError: action.v }
+          : c
+      );
+      newState = {
+        ...state,
+        categories:           updatedCats,
+        familiesLoadingCount: Math.max(0, state.familiesLoadingCount - 1),
+      };
+      break;
+    }
+
     case 'TEAM_LOAD':  newState = { ...state, teamLoading: true }; break;
     case 'TEAM_OK':    newState = { ...state, teamLoading: false, team: action.v }; break;
     case 'SEL_MEMBER': newState = { ...state, selectedMember: action.v }; break;
@@ -140,7 +230,7 @@ function reducer(state, action) {
     case 'SIGHT_ERR':  newState = { ...state, sightingsLoading: false, sightings: [], sightingsError: action.v }; break;
 
     case 'MAP_FILTER': {
-      const incoming   = action.v || {};
+      const incoming    = action.v || {};
       const prevCountry = state.mapFilter?.country;
       const newCountry  = incoming.country ?? prevCountry;
       const newRegion   = incoming.country && incoming.country !== prevCountry
@@ -153,6 +243,7 @@ function reducer(state, action) {
     case 'TAXON_TOGGLE':
       newState = { ...state, taxonExpanded: { ...state.taxonExpanded, [action.id]: !state.taxonExpanded[action.id] } };
       break;
+
     case 'SPECIES_IMG_LOAD':
       newState = { ...state, speciesImagesLoading: true, speciesImagesError: null };
       break;
@@ -162,15 +253,7 @@ function reducer(state, action) {
     case 'SPECIES_IMG_ERR':
       newState = { ...state, speciesImagesLoading: false, speciesImagesError: action.v };
       break;
-    case 'TAXONOMY_LOAD':
-      newState = { ...state, taxonomyLoading: true, taxonomyError: null, taxonomyData: null };
-      break;
-    case 'TAXONOMY_OK':
-      newState = { ...state, taxonomyLoading: false, taxonomyData: action.v };
-      break;
-    case 'TAXONOMY_ERR':
-      newState = { ...state, taxonomyLoading: false, taxonomyError: action.v };
-      break;
+
     case 'FEATURED_IMG_LOAD':
       newState = { ...state, featuredImagesLoading: true, featuredImagesError: null };
       break;
@@ -181,60 +264,8 @@ function reducer(state, action) {
       newState = { ...state, featuredImagesLoading: false, featuredImagesError: action.v };
       break;
 
-    case 'FAMILY_TREE_LOAD': {
-      const updatedCats = state.categories.map(c =>
-        c.name === action.family ? { ...c, taxonomyLoading: true } : c
-      );
-      newState = {
-        ...state,
-        categories: updatedCats,
-        selectedCategory: state.selectedCategory?.name === action.family
-          ? { ...state.selectedCategory, taxonomyLoading: true }
-          : state.selectedCategory,
-      };
-      break;
-    }
-    case 'FAMILY_TREE_OK': {
-      const updatedCats = state.categories.map(c =>
-        c.name === action.family ? { ...c, ...action.v, taxonomyLoading: false } : c
-      );
-      newState = {
-        ...state,
-        categories:           updatedCats,
-        familiesLoadingCount: Math.max(0, state.familiesLoadingCount - 1),
-        selectedCategory: state.selectedCategory?.name === action.family
-          ? { ...state.selectedCategory, ...action.v, taxonomyLoading: false }
-          : state.selectedCategory,
-      };
-      break;
-    }
-    case 'FAMILY_TREE_ERR': {
-      const updatedCats = state.categories.map(c =>
-        c.name === action.family ? { ...c, taxonomyLoading: false } : c
-      );
-      newState = {
-        ...state,
-        categories:           updatedCats,
-        familiesLoadingCount: Math.max(0, state.familiesLoadingCount - 1),
-        selectedCategory: state.selectedCategory?.name === action.family
-          ? { ...state.selectedCategory, taxonomyLoading: false }
-          : state.selectedCategory,
-      };
-      break;
-    }
-
     default:
       newState = state;
-  }
-
-  // Debug logging for selection state changes
-  if (['SEL_CAT', 'SEL_SUBCAT', 'SEL_SUBCAT_PATH', 'SEL_SPECIES_FILTER'].includes(action.type)) {
-    console.log(`✅ Result State:`, {
-      category: newState.selectedCategory?.name || 'none',
-      subcat: newState.selectedSubcat || 'all',
-      speciesFilter: newState.selectedSpeciesFilter?.name || 'none',
-      displayWillShow: newState.selectedSpeciesFilter ? '🔍 Single species' : newState.selectedSubcat !== 'all' ? '📋 Species from subcategory' : '📚 All species from category',
-    });
   }
 
   return newState;
@@ -255,6 +286,7 @@ export function Provider({ children }) {
     document.documentElement.setAttribute('data-theme', state.theme);
   }, [state.theme]);
 
+  // ── Initial load ──────────────────────────────────────────────────────────
   const loadAll = useCallback(async () => {
     dispatch({ type: 'TEAM_OK',  v: STATIC_TEAM });
     dispatch({ type: 'STATS_OK', v: FALLBACK_STATS });
@@ -281,24 +313,62 @@ export function Provider({ children }) {
         dispatch({ type: 'SIGHT_ERR', v: err?.message || 'Failed to load sightings' });
       });
 
-    dispatch({ type: 'CAT_LOAD' });
     const baseCategories = buildBaseCategories();
     dispatch({ type: 'RESET_FAMILIES_COUNT', count: baseCategories.length });
     dispatch({ type: 'CAT_OK', v: baseCategories });
-
-    baseCategories.forEach((cat, fi) => {
-      dispatch({ type: 'FAMILY_TREE_LOAD', family: cat.name });
-      loadFamilyTaxonomy(cat.name, fi)
-        .then(update => dispatch({ type: 'FAMILY_TREE_OK', family: cat.name, v: update }))
-        .catch(err => {
-          console.error(`[loadAll] Failed to load ${cat.name}:`, err);
-          dispatch({ type: 'FAMILY_TREE_ERR', family: cat.name });
-        });
-    });
   }, []);
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
+  // ── Lazy subtree fetch ────────────────────────────────────────────────────
+  const loadFamilySubtree = useCallback(async (familyName) => {
+    dispatch({ type: 'FAMILY_SUBTREE_LOAD', family: familyName });
+    try {
+      const node = await fetchFamilySubtree(familyName);
+      dispatch({ type: 'FAMILY_SUBTREE_OK', family: familyName, node });
+    } catch (err) {
+      console.error(`[loadFamilySubtree] Failed for ${familyName}:`, err);
+      dispatch({ type: 'FAMILY_SUBTREE_ERR', family: familyName, v: err?.message });
+    }
+  }, []);
+
+  // ── Auto-fetch ALL family subtrees on load ────────────────────────────────
+  useEffect(() => {
+    if (state.categories.length === 0) return;
+    state.categories.forEach(family => {
+      if (!family.subtreeNode && !family.subtreeLoading) {
+        loadFamilySubtree(family.name);
+      }
+    });
+  }, [state.categories.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Reactive tree-search fetch ────────────────────────────────────────────
+  // FIX: removed the cache guard that was preventing re-fetches when the same
+  // family header was clicked after a leaf was selected.
+  // SEL_SPECIES_FILTER now always clears taxonomyDetail in the reducer, so
+  // every new filter dispatch triggers a fresh fetch here.
+  const filterCategory = state.selectedSpeciesFilter?.category;
+  useEffect(() => {
+    if (!filterCategory) return;
+
+    let cancelled = false;
+    dispatch({ type: 'TAXON_DETAIL_LOAD', category: filterCategory });
+
+    fetchTaxonomyDetail(filterCategory)
+      .then(node => {
+        if (cancelled) return;
+        const files = collectAllFilesFromTree(node);
+        console.log(`[TAXON_DETAIL_OK] category=${filterCategory} files=${files.length}`);
+        dispatch({ type: 'TAXON_DETAIL_OK', category: filterCategory, node, files });
+      })
+      .catch(err => {
+        if (!cancelled) dispatch({ type: 'TAXON_DETAIL_ERR', v: err?.message || 'Failed to load detail' });
+      });
+
+    return () => { cancelled = true; };
+  }, [filterCategory]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Species image fetch (for detail modal) ────────────────────────────────
   const scientific = state.selectedSpecies?.scientific;
   const images     = state.selectedSpecies?._images;
   useEffect(() => {
@@ -311,6 +381,7 @@ export function Provider({ children }) {
     return () => { cancelled = true; };
   }, [scientific, images]);
 
+  // ── Derived: filtered sightings for map ───────────────────────────────────
   const visibleSightings = state.sightings.filter(s => {
     const { country, region } = state.mapFilter;
     if (country && country !== 'All Countries') {
@@ -324,12 +395,30 @@ export function Provider({ children }) {
     return true;
   });
 
-  const allSpecies      = state.categories.flatMap(c => {
-    if (typeof c.subcategories === 'object' && !Array.isArray(c.subcategories)) {
-      return Object.values(c.subcategories).flat();
-    }
-    return c.species || [];
+  // ── Derived: search-filtered species list ─────────────────────────────────
+  const allSpecies = state.categories.flatMap(c => {
+    if (!c.subtreeNode) return [];
+    const flatten = (node) => {
+      if (!node || typeof node !== 'object') return [];
+      const category = node.category;
+      if (!category) return [];
+      const children = Array.isArray(node.children) ? node.children : [];
+      if (children.length === 0) {
+        const label = category.replace(/_/g, ' ');
+        return [{
+          id:         category,
+          name:       label,
+          scientific: label,
+          region:     '',
+          family:     c.name,
+          color:      c.color,
+        }];
+      }
+      return children.flatMap(flatten);
+    };
+    return flatten(c.subtreeNode);
   });
+
   const filteredSpecies = allSpecies.filter(s => {
     if (!state.search || state.search.length < 2) return true;
     const q = state.search.toLowerCase();
@@ -341,7 +430,14 @@ export function Provider({ children }) {
   });
 
   return (
-    <Ctx.Provider value={{ state, dispatch, filteredSpecies, visibleSightings, reload: loadAll }}>
+    <Ctx.Provider value={{
+      state,
+      dispatch,
+      filteredSpecies,
+      visibleSightings,
+      reload: loadAll,
+      loadFamilySubtree,
+    }}>
       {children}
     </Ctx.Provider>
   );
